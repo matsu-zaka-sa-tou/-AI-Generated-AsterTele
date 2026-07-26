@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AsterTele SIP 软交换机 — Bug 修复历程报告</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #1f6feb;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --purple: #bc8cff;
+    --cyan: #39d353;
+    --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+  .hero-icon { font-size: 56px; margin-bottom: 16px; }
+  .hero h1 {
+    font-size: 2.4em;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .hero .subtitle {
+    font-size: 1.1em;
+    color: var(--text2);
+    margin-top: 12px;
+  }
+  .hero .meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero .meta span {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    color: var(--text2);
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin: 40px 0;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .stat-card .num {
+    font-size: 2em;
+    font-weight: 800;
+    display: block;
+  }
+  .stat-card .label {
+    color: var(--text2);
+    font-size: 0.85em;
+    margin-top: 4px;
+  }
+
+  /* Section */
+  .section { margin-top: 48px; }
+  .section-title {
+    font-size: 1.6em;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .icon { font-size: 1.2em; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 32px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 36px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    top: 6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: var(--bg);
+    z-index: 1;
+  }
+  .timeline-item.bug::before { border-color: var(--red); }
+  .timeline-item.fix::before { border-color: var(--green); }
+  .timeline-item.discovery::before { border-color: var(--orange); }
+  .timeline-item.milestone::before { border-color: var(--purple); }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .timeline-phase {
+    font-size: 0.75em;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phase-bug { background: rgba(248,81,73,0.15); color: var(--red); }
+  .phase-fix { background: rgba(63,185,80,0.15); color: var(--green); }
+  .phase-discovery { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .phase-milestone { background: rgba(188,140,255,0.15); color: var(--purple); }
+
+  .timeline-title {
+    font-size: 1.15em;
+    font-weight: 700;
+  }
+  .timeline-time {
+    font-size: 0.8em;
+    color: var(--text2);
+    margin-left: auto;
+  }
+
+  .timeline-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 8px;
+  }
+  .timeline-body p { margin-bottom: 8px; }
+  .timeline-body p:last-child { margin-bottom: 0; }
+  .timeline-body code {
+    background: rgba(88,166,255,0.1);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+  .timeline-body pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    margin: 10px 0;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+    line-height: 1.5;
+  }
+
+  /* Problem / Solution boxes */
+  .problem-box {
+    border-left: 3px solid var(--red);
+    background: rgba(248,81,73,0.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+  }
+  .problem-box .tag {
+    color: var(--red);
+    font-weight: 700;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+  }
+  .solution-box {
+    border-left: 3px solid var(--green);
+    background: rgba(63,185,80,0.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+  }
+  .solution-box .tag {
+    color: var(--green);
+    font-weight: 700;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+  }
+  .discovery-box {
+    border-left: 3px solid var(--orange);
+    background: rgba(210,153,34,0.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+  }
+  .discovery-box .tag {
+    color: var(--orange);
+    font-weight: 700;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.92em;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--surface2);
+    color: var(--text2);
+    font-weight: 600;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td { background: var(--surface); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+  }
+  .badge-fixed { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-unfixed { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-partial { background: rgba(210,153,34,0.15); color: var(--orange); }
+
+  /* Architecture diagram */
+  .arch-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.85em;
+    line-height: 1.4;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text2);
+  }
+  .arch-box .hl-green { color: var(--green); }
+  .arch-box .hl-red { color: var(--red); }
+  .arch-box .hl-accent { color: var(--accent); }
+  .arch-box .hl-orange { color: var(--orange); }
+  .arch-box .hl-purple { color: var(--purple); }
+  .arch-box .hl-pink { color: var(--pink); }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .summary-card h4 {
+    font-size: 1em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .summary-card p {
+    color: var(--text2);
+    font-size: 0.9em;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--text2);
+    font-size: 0.85em;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 1.8em; }
+    .container { padding: 24px 16px 60px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="hero-icon">🔧</div>
+  <h1>AsterTele Bug 修复历程</h1>
+  <div class="subtitle">从第一个崩溃到最终稳定 — C# SIP B2BUA 软交换机的调试全纪录</div>
+  <div class="meta">
+    <span>📦 SIPSorcery 10.0.12</span>
+    <span>🖥️ .NET 8 / C#</span>
+    <span>📱 Android Zoiper</span>
+    <span>📅 2026-07-24</span>
+  </div>
+</div>
+
+<!-- ===== STATS ===== -->
+<div class="stats">
+  <div class="stat-card">
+    <span class="num" style="color:var(--red)">6</span>
+    <span class="label">Bug 轮次</span>
+  </div>
+  <div class="stat-card">
+    <span class="num" style="color:var(--orange)">1</span>
+    <span class="label">根因发现</span>
+  </div>
+  <div class="stat-card">
+    <span class="num" style="color:var(--green)">5</span>
+    <span class="label">核心修复</span>
+  </div>
+  <div class="stat-card">
+    <span class="num" style="color:var(--accent)">~980</span>
+    <span class="label">最终代码行数</span>
+  </div>
+</div>
+
+<!-- ===== ARCHITECTURE ===== -->
+<div class="section">
+  <div class="section-title"><span class="icon">🏗️</span> 项目架构速览</div>
+  <div class="arch-box"><span class="hl-accent">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="hl-accent">│</span>                    <span class="hl-purple">AsterTele SIP B2BUA</span>                        <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                                                             <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">Zoiper 8002</span>  <span class="hl-orange">◄──►</span>  <span class="hl-purple">[SipSoftSwitch]</span>  <span class="hl-orange">◄──►</span>  <span class="hl-green">Zoiper 8003</span>   <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>   <span class="hl-green">同子网</span>         <span class="hl-orange">↕</span>   stateless     <span class="hl-orange">↕</span>    <span class="hl-red">跨子网 (NAT)</span>  <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  192.168.40.100      SIPTransport      192.168.40.1:29639  <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                       <span class="hl-orange">↕</span>                              <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">┌─────── 核心模块 ───────┐</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> SipSoftSwitch.cs  <span class="hl-accent">~980</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> CallManager.cs    <span class="hl-accent">~210</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> DigestAuthenticator <span class="hl-accent">~120</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> RegistrationStore <span class="hl-accent">~140</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">└──────────────────────────┘</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                                                             <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">服务器 IP:</span> 192.168.40.102    <span class="hl-red">路由器:</span> 192.168.40.1      <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">同子网 Contact:</span> 192.168.40.102  <span class="hl-red">跨子网 Contact:</span> 192.168.40.1 <span class="hl-accent">│</span>
+<span class="hl-accent">└─────────────────────────────────────────────────────────────┘</span></div>
+</div>
+
+<!-- ===== BUG TIMELINE ===== -->
+<div class="section">
+  <div class="section-title"><span class="icon">🐛</span> Bug 修复时间线</div>
+
+  <div class="timeline">
+
+    <!-- Phase 1: 项目启动 -->
+    <div class="timeline-item milestone">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-milestone">里程碑</span>
+        <span class="timeline-title">项目启动 — C# + SIPSorcery B2BUA</span>
+      </div>
+      <div class="timeline-body">
+        <p>选择方案 1：C# + SIPSorcery 10.0.12 自己写，而非 FreeSWITCH / Asterisk / Kamailio。</p>
+        <p>核心目标：让分机 8001/8002/8003 在 Android Zoiper 上正确注册、通话、挂断。</p>
+        <p>设计决策：B2BUA 模式（两侧独立 Call-ID），SDP 透传 + RTP 直连（LAN 场景）。</p>
+      </div>
+    </div>
+
+    <!-- Phase 1b: API差异 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">修复</span>
+        <span class="timeline-title">SIPSorcery 10.0.12 API 差异适配</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>SIPSorcery 10.0.12 的枚举名与文档/旧版不一致，导致批量编译错误：</p>
+          <pre> SIPResponseStatusCodesEnum.OK    → <span style="color:var(--red)">Ok</span>
+ SIPProtocolsEnum.UDP            → <span style="color:var(--red)">udp</span></pre>
+        </div>
+        <div class="solution-box">
+          <div class="tag">解决</div>
+          <p>逐个修正枚举名，编译通过 0 错误 0 警告。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: 第一个运行时崩溃 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #1</span>
+        <span class="timeline-title">SendResponse 崩溃 — IPAddress.Parse 无法解析 "IP:Port"</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p><code>SendResponse</code> 方法中的 <code>IPAddress.Parse(topVia.ReceivedFromAddress)</code> 崩溃。</p>
+          <p><code>ReceivedFromAddress</code> 返回的是 <code>"192.168.40.1:5060"</code> 格式（IP:Port），而非纯 IP。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">解决</div>
+          <p>修改 <code>SendResponse</code> 方法，改为接受 <code>SIPEndPoint remoteEP</code> 参数，不再从 Via 头解析 IP:Port。直接使用事件回调中已有的远端地址。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: 四大问题 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #2</span>
+        <span class="timeline-title">四大问题齐发 — 8003 不存在 / 重传洪水 / 认证失败 / 无音频</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题 1</div>
+          <p>8003 分机未配置 → 调用 8003 时返回 404 Not Found</p>
+        </div>
+        <div class="problem-box">
+          <div class="tag">问题 2</div>
+          <p>200 OK 重传洪水：被叫回复 200 OK 后，主叫的 ACK 到不了服务端，导致被叫每隔 500ms 重传 200 OK</p>
+        </div>
+        <div class="problem-box">
+          <div class="tag">问题 3</div>
+          <p>Digest 认证间歇性失败：nonce 在首次验证后被删除，Zoiper 刷新注册时复用同一 nonce 被拒绝</p>
+        </div>
+        <div class="problem-box">
+          <div class="tag">问题 4</div>
+          <p>通话无音频：SDP 协商/转发存在缺陷</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">解决</div>
+          <p>1. 添加 8003 分机到 <code>appsettings.json</code></p>
+          <p>2. 实现 200 OK 去重机制：<code>Callee200OkProcessed</code> 标志 + <code>ForwardedCallerOkResponse</code> 缓存</p>
+          <p>3. 修改 DigestAuthenticator：nonce 5 分钟复用窗口（不再验证后立即删除）</p>
+          <p>4. 添加 ACK/SDP 详细日志，为后续音频问题定位做准备</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 4: Via/Record-Route/Contact 问题 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #3</span>
+        <span class="timeline-title">通话建立日志重复 / ACK 无转发日志 / 无音频 / 双端 Android</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>200 OK 转发给主叫后，被叫的 200 OK 仍持续重传（应用层无去重）；</p>
+          <p>ACK 从未到达服务端 → 无转发日志；</p>
+          <p>两个 Android Zoiper 客户端无法建立音频通道。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">关键发现</div>
+          <p>客户端的 ACK/BYE 是根据 200 OK 中的 <strong>Contact</strong> 和 <strong>Record-Route</strong> 来路由的。</p>
+          <p>如果 Contact 指向服务器直连 IP，但客户端在 NAT 后面，ACK 发不到服务器；</p>
+          <p>如果缺少 Record-Route，客户端可能把 ACK 发到被叫的 Contact 地址而非服务器。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">解决</div>
+          <p>1. 在转发响应中添加 <strong>Record-Route</strong> 头（使用 AdvertisedAddress），强制后续请求路由到服务器</p>
+          <p>2. 设置 <code>Callee200OkProcessed=true</code> 实现去重，重传时直接发送缓存的响应</p>
+          <p>3. 添加 B2BUA 生成的 <code>To tag</code>（<code>B2buaToTag</code>）到所有转发响应</p>
+          <p>4. 添加服务器 Contact 头到转发响应</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 5: 摘机/挂断问题 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #4</span>
+        <span class="timeline-title">8003 摘机仍显示 "Calling" / 挂断不同步 / 日志需求</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题 1</div>
+          <p>8003 摘机（200 OK）后，8002 仍显示 "Calling" — 说明 200 OK 未正确转发到主叫</p>
+        </div>
+        <div class="problem-box">
+          <div class="tag">问题 2</div>
+          <p>8002 挂断后 8003 不同步挂断 — BYE 转发/路由失败</p>
+        </div>
+        <div class="problem-box">
+          <div class="tag">问题 3</div>
+          <p>日志需要输出到 exe 同目录而非控制台</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根本发现</div>
+          <p><strong>SIPSorcery UAS 事务引擎吞噬了 ACK 和 BYE！</strong></p>
+          <p>在 stateful 模式下，SIPSorcery 的 UAS 事务会自动匹配 ACK/BYE，但不会触发应用层事件。</p>
+          <p>这意味着 <code>SIPTransportRequestReceived</code> 根本收不到 ACK 和 BYE。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 5b: Stateless -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">关键修复</span>
+        <span class="timeline-title">切换到 Stateless 模式 — 禁用事务引擎</span>
+      </div>
+      <div class="timeline-body">
+        <div class="solution-box">
+          <div class="tag">方案</div>
+          <p>将 SIPTransport 从有状态模式改为 <code>stateless: true</code>，禁用事务引擎，所有 SIP 消息直接触发应用层事件。</p>
+          <pre>var transport = new SIPTransport(stateless: true, Encoding.UTF8, Encoding.UTF8);</pre>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">附带问题</div>
+          <p>Stateless 模式下没有事务层去重，需要自己处理：</p>
+          <p>• INVITE 重传去重</p>
+          <p>• BYE 重传去重</p>
+          <p>• 200 OK 重传去重</p>
+          <p>• ACK for non-2xx 需要手动发送（原来事务引擎会自动处理）</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 6: 根因分析 -->
+    <div class="timeline-item discovery">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-discovery">根因分析</span>
+        <span class="timeline-title">ACK/BYE 路由不到服务器的真正原因</span>
+      </div>
+      <div class="timeline-body">
+        <div class="discovery-box">
+          <div class="tag">网络拓扑</div>
+          <pre>8002 (192.168.40.100)  ←──同子网──→  服务器 (192.168.40.102)
+8003 (192.168.0.110)   ←──NAT──→   路由器 (192.168.40.1) ←──端口转发──→ 服务器</pre>
+        </div>
+        <div class="problem-box">
+          <div class="tag">核心问题</div>
+          <p><code>AdvertisedAddress = 192.168.40.1</code>（路由器 IP）被用于<strong>所有客户端</strong>的 Contact/Record-Route。</p>
+          <p>• 跨子网客户端（8003）：ACK 发往 192.168.40.1 → 端口转发到服务器 ✅</p>
+          <p>• 同子网客户端（8002）：ACK 也发往 192.168.40.1 → <strong>发到路由器而非服务器</strong> ❌</p>
+          <p>路由器端口转发是单向的（WAN → LAN），同子网到路由器的 UDP 不会转发回服务器！</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">次要发现</div>
+          <p>• 非 2xx 响应（486 BusyHere）也会无限重传 — stateless 模式下没有事务引擎自动发 ACK for non-2xx</p>
+          <p>• Proxy ACK 延迟约 1.5 秒（等了两次 200 OK 重传才发）</p>
+          <p>• 主叫的 BYE 同样到不了服务端，导致挂断时只有一端能正常释放</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 7: 终极修复 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">终极修复</span>
+        <span class="timeline-title">四大修复落地 — 智能路由 + 立即 ACK + non-2xx ACK + BYE 超时</span>
+      </div>
+          <p>根据客户端来源网络选择 Contact/Record-Route 地址：</p>
+          <pre>同子网客户端 (192.168.40.0/24) → Contact = 192.168.40.102 (服务器直连IP)
+跨子网客户端 (192.168.0.0/16)  → Contact = 192.168.40.1   (路由器IP)</pre>
+          <p>实现 <code>IsSameSubnet()</code> + <code>GetContactEPForClient()</code>，在 INVITE / 200 OK / BYE / ACK 构建时动态选择地址。</p>
+          <p>同子网客户端的 ACK/BYE 现在直连服务器 IP，不再绕路到路由器。</p>
+        </div>
+
+        <!-- Fix 2 -->
+        <div class="solution-box">
+          <div class="tag">修复 2：Proxy ACK 立即发送</div>
+          <p>首次转发 200 OK 给主叫后，<strong>立即</strong>发送 Proxy ACK 给被叫。</p>
+          <p>原来：等重传 #2 才发（延迟 ~1.5 秒）→ 被叫 200 OK 重传 2-3 次</p>
+          <p>现在：随首次 200 OK 同时发出 → 被叫在 T1 (~500ms) 内收到 ACK，停止重传</p>
+        </div>
+
+        <!-- Fix 3 -->
+        <div class="solution-box">
+          <div class="tag">修复 3：ACK for non-2xx</div>
+          <p>新增 <code>SendAckForNon2xxToCallee()</code> 方法。</p>
+          <p>当收到被叫的 486/487/4xx/5xx 响应时，立即代替主叫向被叫发 ACK for non-2xx，停止重传。</p>
+          <p>Stateless 模式下 UAS 事务引擎不会自动做这件事，必须手动处理。</p>
+        </div>
+
+        <!-- Fix 4 -->
+        <div class="solution-box">
+          <div class="tag">修复 4：BYE 超时重传 + 强制清理</div>
+          <p><code>HandleBye</code> 不再立即移除会话，改为 <code>CallState.Disconnecting</code>。</p>
+          <p>清理定时器每 5 秒重传未确认的 BYE（最多 3 次），20 秒后强制清理。</p>
+          <pre>BYE 发出 → 5s 未确认 → 重传 #1 → 5s → 重传 #2 → 5s → 重传 #3 → 5s → 强制清理
+总超时 = 20 秒</pre>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Phase 8: 生产反馈 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #5</span>
+        <span class="timeline-title">生产反馈：有几率无法同时挂断</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>实际部署后反馈：双方同时按挂断时，有几率一方无法成功挂断，仍停留在通话界面。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根因分析</div>
+          <p><strong>竞态条件 1：ByeProcessed 全局标志导致第二方 BYE 被吞。</strong></p>
+          <p>原代码用单个 <code>ByeProcessed</code> 标志控制重传去重，但双方同时 BYE 时，第二方的 BYE 是<strong>不同 Call-ID 的独立挂断请求</strong>，却被当作重传忽略。</p>
+          <pre>8002 BYE (callerCallId) → ByeProcessed=true, 转发 BYE 给 8003
+8003 BYE (calleeCallId) → ByeProcessed=true → <span style="color:var(--red)">当作重传, 不转发</span></pre>
+          <p><strong>竞态条件 2：BYE 的 200 OK 响应未被处理。</strong></p>
+          <p><code>OnSipResponseReceived</code> 只处理被叫 INVITE 响应转发，完全忽略 BYE 的 200 OK。服务端不知道 BYE 是否送达，只能等 20 秒超时强制清理。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 8b: 双边 BYE 修复 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">修复</span>
+        <span class="timeline-title">双边挂断追踪 + BYE 200 OK 响应处理</span>
+      </div>
+      <div class="timeline-body">
+        <div class="solution-box">
+          <div class="tag">修复 1：双边挂断独立追踪</div>
+          <p>废弃全局 <code>ByeProcessed</code>，改用 <code>CallerHungUp</code> / <code>CalleeHungUp</code> 独立追踪两侧挂断状态。</p>
+          <p>BYE 到达时只标记<strong>对应侧</strong>已挂断，仅当另一侧尚未挂断时才转发 BYE。</p>
+          <pre>8002 BYE → CallerHungUp=true, 转发 BYE 给 8003
+8003 BYE → CalleeHungUp=true, 不重复转发 (8002已挂)
+双方均 HungUp → <span style="color:var(--green)">立即清理会话</span></pre>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复 2：BYE 200 OK 响应处理</div>
+          <p>新增 <code>HandleBye200Ok()</code> 方法，在 <code>OnSipResponseReceived</code> 中识别 BYE 的 200 OK。</p>
+          <p>收到后标记 <code>Bye200OkReceived=true</code>，停止重传，并标记对端已挂断。若双方都已挂断，立即清理会话。</p>
+          <pre>服务器发 BYE → 对端回 200 OK → Bye200OkReceived=true → <span style="color:var(--green)">确认送达, 停止重传</span></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="section">
+  <div class="section-title"><span class="icon">📊</span> 问题解决状态总览</div>
+  <table>
+    <thead>
+      <tr>
+        <th>问题</th>
+        <th>根因</th>
+        <th>修复方案</th>
+        <th>状态</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SendResponse 崩溃</td>
+        <td>ReceivedFromAddress 格式为 IP:Port</td>
+        <td>改用 remoteEP 参数</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>8003 分机不存在</td>
+        <td>appsettings.json 未配置 8003</td>
+        <td>添加 8003 配置</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>200 OK 重传洪水</td>
+        <td>ACK 到不了服务器 / 无 Proxy ACK</td>
+        <td>智能路由 + 立即 Proxy ACK</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>Digest 认证间歇失败</td>
+        <td>nonce 验证后立即删除</td>
+        <td>5 分钟 nonce 复用窗口</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>通话无音频</td>
+        <td>缺少 Record-Route / Contact</td>
+        <td>添加 Record-Route + 智能路由</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>ACK/BYE 被事务引擎吞噬</td>
+        <td>SIPSorcery stateful 模式</td>
+        <td>切换到 stateless + 自行去重</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>486 BusyHere 无限重传</td>
+        <td>Stateless 无 ACK for non-2xx</td>
+        <td>新增 SendAckForNon2xxToCallee</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>同子网 ACK 路由到路由器</td>
+        <td>AdvertisedAddress 对所有客户端一视同仁</td>
+        <td>IsSameSubnet 智能路由选择</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>挂断不同步</td>
+        <td>BYE 到不了对端</td>
+        <td>BYE 超时重传 (3次/20s) + 双边挂断追踪</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>无法同时挂断</td>
+        <td>ByeProcessed 全局标志吞掉第二方 BYE / BYE 200 OK 未处理</td>
+        <td>双边 CallerHungUp/CalleeHungUp + HandleBye200Ok</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>幽灵会话累积</td>
+        <td>新呼叫覆盖旧会话 key</td>
+        <td>RemoveSessionByExtension + 定时清理</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== CODE CHANGES ===== -->
+<div class="section">
+  <div class="section-title"><span class="icon">📝</span> 核心代码变更摘要</div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h4><span style="color:var(--green)">①</span> 智能路由选择</h4>
+      <p>新增 <code>_localEP</code>、<code>IsSameSubnet()</code>、<code>GetContactEPForClient()</code>。同 /24 子网客户端用直连 IP，跨子网用 AdvertisedAddress。应用于 INVITE / 200 OK / BYE / ACK 所有消息构建。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--green)">②</span> Proxy ACK 立即发送</h4>
+      <p>在 <code>ForwardCalleeResponse</code> 的 200 OK 分支中，首次转发后直接调用 <code>SendProxyAckToCallee()</code>。不再等重传 #2 才发。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--green)">③</span> ACK for non-2xx</h4>
+      <p>新增 <code>SendAckForNon2xxToCallee()</code> 方法。在 BusyHere / Decline / 4xx / 5xx 响应到达时立即向被叫发 ACK，停止重传。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--green)">④</span> BYE 双边挂断追踪</h4>
+      <p>废弃全局 <code>ByeProcessed</code>，改用 <code>CallerHungUp</code>/<code>CalleeHungUp</code> 独立追踪。BYE 200 OK 响应通过 <code>HandleBye200Ok()</code> 处理，确认送达后停止重传。双方均挂断时立即清理。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== KEY LESSONS ===== -->
+<div class="section">
+  <div class="section-title"><span class="icon">💡</span> 关键经验教训</div>
+
+  <div class="timeline">
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>SIPSorcery stateless 是必需的，但代价是自己处理一切去重。</strong></p>
+        <p>Stateful 模式下 UAS 事务引擎吞噬了 ACK/BYE 事件，但自动处理了去重、重传、non-2xx ACK。切换到 stateless 后这些都要自己实现。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>AdvertisedAddress 不是万能的——同子网客户端不需要 NAT 地址。</strong></p>
+        <p>一刀切地把所有 Contact/Record-Route 设为路由器 IP，会让同子网客户端的 ACK/BYE 错误路由到路由器。必须按客户端网络拓扑动态选择。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>Via 头不能替换——客户端用它匹配 INVITE 事务。</strong></p>
+        <p>曾尝试替换 Via 为服务器地址来路由 ACK，结果客户端无法匹配 200 OK → 通话完全无法建立。Via 必须保留原始 INVITE 的值。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>双边 BYE 竞态是 B2BUA 最容易忽视的陷阱。</strong></p>
+        <p>两路独立 SIP 对话的主叫/被叫可能同时发 BYE。用全局标志 <code>ByeProcessed</code> 会吞掉第二方的挂断请求。必须为每一侧独立追踪挂断状态，并在双方均确认后立即清理。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>B2BUA 模式下，Proxy ACK/BYE 是必要的保底机制。</strong></p>
+        <p>即使路由正确，网络抖动也可能导致 ACK 丢失。主动代替主叫发 ACK（Proxy ACK）和 BYE 超时重传，是 B2BUA 可靠性的关键保障。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FILES ===== -->
+<div class="section">
+  <div class="section-title"><span class="icon">📁</span> 项目文件清单</div>
+  <table>
+    <thead>
+      <tr><th>文件</th><th>行数</th><th>职责</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>SipSoftSwitch.cs</code></td><td>~1070</td><td>核心：SIP B2BUA 逻辑、智能路由、消息转发、双边 BYE</td></tr>
+      <tr><td><code>CallManager.cs</code></td><td>~220</td><td>会话管理、去重、双边挂断状态机</td></tr>
+      <tr><td><code>DigestAuthenticator.cs</code></td><td>~120</td><td>Digest 401 认证（5 分钟 nonce 复用）</td></tr>
+      <tr><td><code>RegistrationStore.cs</code></td><td>~140</td><td>分机注册存储与过期清理</td></tr>
+      <tr><td><code>SipOptions.cs</code></td><td>~50</td><td>配置模型（含 AdvertisedAddress）</td></tr>
+      <tr><td><code>Program.cs</code></td><td>~150</td><td>入口 + 文件日志 + 状态监控</td></tr>
+      <tr><td><code>appsettings.json</code></td><td>~36</td><td>配置：8001/8002/8003, 端口, NAT</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  AsterTele SIP SoftSwitch v1.0 — Bug 修复历程报告<br>
+  生成于 2026-07-24 · TeleAgent 自动生成
+</div>
+
+</div>
+</body>
+</html>
