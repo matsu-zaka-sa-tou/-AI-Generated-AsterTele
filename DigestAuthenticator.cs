@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using SIPSorcery.SIP;
 
 namespace AsterTele;
@@ -14,10 +15,12 @@ public class DigestAuthenticator
     private readonly Dictionary<string, DateTime> _pendingNonces = new();
     private readonly object _nonceLock = new();
     private static readonly TimeSpan NonceExpiry = TimeSpan.FromMinutes(5);
+    private readonly ILogger? _logger;
 
-    public DigestAuthenticator(string realm)
+    public DigestAuthenticator(string realm, ILogger<DigestAuthenticator>? logger = null)
     {
         _realm = realm;
+        _logger = logger;
     }
 
     /// <summary>
@@ -71,7 +74,11 @@ public class DigestAuthenticator
         {
             CleanupExpiredNonces();
             if (!_pendingNonces.ContainsKey(digest.Nonce))
+            {
+                _logger?.LogWarning("Nonce 无效或已过期: {Nonce} (活跃 nonces: {Count})",
+                    digest.Nonce[..Math.Min(8, digest.Nonce.Length)], _pendingNonces.Count);
                 return false;
+            }
         }
 
         // 使用 SIPSorcery 内置的 Digest 计算验证
@@ -91,6 +98,15 @@ public class DigestAuthenticator
         var expectedResponse = expectedDigest.GetDigest();
 
         var isValid = string.Equals(expectedResponse, digest.Response, StringComparison.OrdinalIgnoreCase);
+
+        if (!isValid)
+        {
+            _logger?.LogWarning("Digest 验证失败: 期望={Expected}, 收到={Actual}, Realm={Realm}, URI={URI}, " +
+                "Username={Username}, Qop={Qop}, Cnonce={Cnonce}, NC={NC}",
+                expectedResponse?[..Math.Min(8, expectedResponse.Length)],
+                digest.Response?[..Math.Min(8, digest.Response.Length)],
+                _realm, digest.URI, username, digest.Qop, digest.Cnonce, digest.NonceCount);
+        }
 
         // 不立即删除 nonce，允许在时间窗口内复用 (解决注册刷新时的间歇失败)
         // nonce 会在 CleanupExpiredNonces 中统一清理

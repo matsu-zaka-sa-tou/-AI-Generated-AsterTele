@@ -1,0 +1,1 @@
+using SIPSorcery.SIP; var u1 = new SIPURI("user", "1.2.3.4", "5060", SIPSchemesEnum.sip); Console.WriteLine(u1); var u2 = new SIPURI("user", "1.2.3.4:5060", null, SIPSchemesEnum.sip); Console.WriteLine(u2);

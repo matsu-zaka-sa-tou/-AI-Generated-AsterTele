@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using Microsoft.Extensions.Logging;
 using SIPSorcery.SIP;
 
@@ -70,11 +71,23 @@ public class CallSession
     /// <summary>BYE 目标: true=被叫, false=主叫</summary>
     public bool ByeTargetIsCallee { get; set; }
 
+    /// <summary>是否为外呼 Trunk 会话</summary>
+    public bool IsOutboundTrunk { get; set; }
+
+    /// <summary>外呼 Trunk 名称</summary>
+    public string? TrunkName { get; set; }
+
     /// <summary>主叫侧 From tag (从 INVITE 中提取)</summary>
     public string? CallerFromTag { get; set; }
 
     /// <summary>被叫 200 OK 重传计数</summary>
     public int Callee200OkRetransmitCount { get; set; }
+
+    /// <summary>无应答超时取消令牌源</summary>
+    public CancellationTokenSource? NoAnswerCts { get; set; }
+
+    /// <summary>呼叫转移深度 (防止无限循环)</summary>
+    public int ForwardDepth { get; set; }
 
     /// <summary>呼叫状态</summary>
     public CallState State { get; set; } = CallState.Initiating;
@@ -87,6 +100,21 @@ public class CallSession
 
     /// <summary>被叫侧 Call-ID</summary>
     public string? CalleeCallId => CalleeInvite?.Header.CallId;
+
+    /// <summary>主叫侧 Contact URI (从运营商 INVITE 的 Contact 中提取, 用于发 BYE)</summary>
+    public SIPURI? CallerContactURI { get; set; }
+
+    /// <summary>主叫侧原始 INVITE 的 CSeq 序号 (用于区分重传 vs re-INVITE)</summary>
+    public int CallerInviteCSeq { get; set; }
+
+    /// <summary>被叫侧 Contact URI (从被叫 200 OK 的 Contact 中提取, 用于发 BYE)</summary>
+    public SIPURI? CalleeContactURI { get; set; }
+
+    /// <summary>通话接通时间 (200 OK 首次处理时记录, 用于计算通话时长)</summary>
+    public DateTime? ConnectedAt { get; set; }
+
+    /// <summary>被叫侧原始 INVITE 的 CSeq 序号 (用于区分重传 vs re-INVITE)</summary>
+    public int CalleeInviteCSeq { get; set; }
 
     public override string ToString() => $"[{SessionId}] {CallerNumber} -> {CalleeNumber} ({State})";
 }
@@ -169,6 +197,7 @@ public class CallManager
     public void RegisterCalleeLeg(CallSession session, SIPRequest calleeInvite, SIPEndPoint calleeRemoteEP)
     {
         session.CalleeInvite = calleeInvite;
+        session.CalleeInviteCSeq = calleeInvite.Header.CSeq;
         session.CalleeRemoteEP = calleeRemoteEP;
         _sessionsByCalleeCallId[session.CalleeCallId!] = session;
         _logger.LogDebug("注册被叫腿: Session={SessionId}, CalleeCallId={CallId}", session.SessionId, session.CalleeCallId);
@@ -180,19 +209,32 @@ public class CallManager
     public void MarkConnected(CallSession session)
     {
         session.State = CallState.Connected;
+        session.ConnectedAt = DateTime.UtcNow;
         _logger.LogInformation("会话已连接: {Session}", session);
     }
 
-    /// <summary>
-    /// 移除会话
-    /// </summary>
+    /// <summary>移除会话</summary>
     public void RemoveSession(CallSession session)
     {
+        // 取消无应答定时器
+        session.NoAnswerCts?.Cancel();
+        session.NoAnswerCts?.Dispose();
+        session.NoAnswerCts = null;
+
         _sessionsByCallerCallId.TryRemove(session.CallerCallId, out _);
         if (session.CalleeCallId != null)
             _sessionsByCalleeCallId.TryRemove(session.CalleeCallId, out _);
         session.State = CallState.Disconnected;
         _logger.LogInformation("会话已移除: {Session}", session);
+    }
+
+    /// <summary>
+    /// 注销被叫侧 Call-ID 关联 (用于呼叫转移时替换被叫腿)
+    /// </summary>
+    public void UnregisterCalleeLeg(string calleeCallId)
+    {
+        _sessionsByCalleeCallId.TryRemove(calleeCallId, out _);
+        _logger.LogDebug("注销被叫腿: CalleeCallId={CallId}", calleeCallId);
     }
 
     /// <summary>

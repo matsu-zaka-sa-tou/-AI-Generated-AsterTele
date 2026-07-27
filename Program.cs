@@ -25,6 +25,7 @@ class Program
                 services.Configure<SipOptions>(context.Configuration.GetSection(SipOptions.SectionName));
                 services.AddSingleton<RegistrationStore>();
                 services.AddSingleton<CallManager>();
+                services.AddSingleton<SipTrunkManager>();
                 services.AddSingleton<DigestAuthenticator>();
                 services.AddSingleton<IHostedService, SipSoftSwitch>();
             })
@@ -57,9 +58,11 @@ class Program
                 {
                     var store = host.Services.GetRequiredService<RegistrationStore>();
                     var callMgr = host.Services.GetRequiredService<CallManager>();
+                    var trunkMgr = host.Services.GetRequiredService<SipTrunkManager>();
 
                     var registrations = store.GetAllRegistrations().ToList();
                     var sessions = callMgr.GetActiveSessions().ToList();
+                    var trunks = trunkMgr.GetAllTrunkStates().ToList();
 
                     Console.WriteLine();
                     Console.WriteLine($"── 状态 [{DateTime.Now:HH:mm:ss}] ──");
@@ -70,10 +73,19 @@ class Program
                         var remaining = reg.Expires - (long)age.TotalSeconds;
                         Console.WriteLine($"  {reg.Number}: Contact={reg.ContactURI} 剩余={remaining}s");
                     }
+                    if (trunks.Count > 0)
+                    {
+                        Console.WriteLine($"SIP Trunk: {trunks.Count}");
+                        foreach (var t in trunks)
+                        {
+                            Console.WriteLine($"  {t.TrunkName}: Registered={t.IsRegistered} Expiry={t.RegisterExpiry}s");
+                        }
+                    }
                     Console.WriteLine($"活跃通话: {sessions.Count}");
                     foreach (var s in sessions)
                     {
-                        Console.WriteLine($"  {s.CallerNumber} <-> {s.CalleeNumber} ({s.State})");
+                        var info = s.IsOutboundTrunk ? $" (Trunk:{s.TrunkName})" : "";
+                        Console.WriteLine($"  {s.CallerNumber} <-> {s.CalleeNumber}{info} ({s.State})");
                     }
                     Console.WriteLine("─────────────────────────");
                 }

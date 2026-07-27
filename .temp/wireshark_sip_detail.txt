@@ -1,0 +1,1193 @@
+Frame 5: Packet, 709 bytes on wire (5672 bits), 709 bytes captured (5672 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:05:53.221485000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:05:53.221485000 UTC
+    Epoch Arrival Time: 1785081953.221485000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.995305000 seconds]
+    [Time since reference or first frame: 6.213725000 seconds]
+    Frame Number: 5
+    Frame Length: 709 bytes (5672 bits)
+    Capture Length: 709 bytes (5672 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3), Dst: VMware_74:15:77 (00:0c:29:74:15:77)
+    Destination: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 192.168.40.102, Dst: 172.26.160.38
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 695
+    Identification: 0x3ad5 (15061)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 128
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 192.168.40.102
+    Destination Address: 172.26.160.38
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 54625, Dst Port: 5060
+    Source Port: 54625
+    Destination Port: 5060
+    Length: 675
+    Checksum: 0x3804 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 1]
+    [Timestamps]
+        [Time since first frame: 0.000000000 seconds]
+        [Time since previous frame: 0.000000000 seconds]
+    UDP payload (667 bytes)
+Session Initiation Protocol (REGISTER)
+    Request-Line: REGISTER sip:cq.ctcims.cn SIP/2.0
+        Method: REGISTER
+        Request-URI: sip:cq.ctcims.cn
+            Request-URI Host Part: cq.ctcims.cn
+        [Resent Packet: False]
+    Message Header
+        Via: SIP/2.0/UDP 192.168.40.140:54625;rport;branch=z9hG4bKPjb2b65d34eca94821bc76dffeef2b71d7
+            Transport: UDP
+            Sent-by Address: 192.168.40.140
+            Sent-by port: 54625
+            RPort: rport
+            Branch: z9hG4bKPjb2b65d34eca94821bc76dffeef2b71d7
+        Route: <sip:bac26.cq.ctcims.cn;lr>
+            Route URI: sip:bac26.cq.ctcims.cn;lr
+                Route Host Part: bac26.cq.ctcims.cn
+                Route URI parameter: lr
+        Max-Forwards: 70
+        From: "+862356767450@cq.ctcims.cn" <sip:+862356767450@cq.ctcims.cn>;tag=7cdf106125224534be743afe0eb3af8a
+            SIP from display info: "+862356767450@cq.ctcims.cn"
+            SIP from address: sip:+862356767450@cq.ctcims.cn
+                SIP from address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP from address Host Part: cq.ctcims.cn
+            SIP from tag: 7cdf106125224534be743afe0eb3af8a
+        To: "+862356767450@cq.ctcims.cn" <sip:+862356767450@cq.ctcims.cn>
+            SIP to display info: "+862356767450@cq.ctcims.cn"
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+        Call-ID: 96648673641d4015b16b3e69a6cbd19e
+        [Generated Call-ID: 96648673641d4015b16b3e69a6cbd19e]
+        CSeq: 29726 REGISTER
+            Sequence Number: 29726
+            Method: REGISTER
+        User-Agent: MicroSIP/3.22.5
+        Contact: "+862356767450@cq.ctcims.cn" <sip:+862356767450@192.168.40.140:54625;ob>
+            SIP C-URI display info: "+862356767450@cq.ctcims.cn"
+            Contact URI: sip:+862356767450@192.168.40.140:54625;ob
+                Contact URI User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 192.168.40.140
+                Contact URI Host Port: 54625
+                Contact URI parameter: ob
+        Expires: 300
+        Allow: PRACK, INVITE, ACK, BYE, CANCEL, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, OPTIONS
+        Content-Length:  0
+
+Frame 6: Packet, 683 bytes on wire (5464 bits), 683 bytes captured (5464 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:05:53.306369000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:05:53.306369000 UTC
+    Epoch Arrival Time: 1785081953.306369000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 84.884000 milliseconds]
+    [Time delta from previous displayed frame: 84.884000 milliseconds]
+    [Time since reference or first frame: 6.298609000 seconds]
+    Frame Number: 6
+    Frame Length: 683 bytes (5464 bits)
+    Capture Length: 683 bytes (5464 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: VMware_74:15:77 (00:0c:29:74:15:77), Dst: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+    Destination: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 172.26.160.38, Dst: 192.168.40.102
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x88 (DSCP: AF41, ECN: Not-ECT)
+        1000 10.. = Differentiated Services Codepoint: Assured Forwarding 41 (34)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 669
+    Identification: 0x497b (18811)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 249
+    Protocol: UDP (17)
+    Header Checksum: 0x3ffd [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.26.160.38
+    Destination Address: 192.168.40.102
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 5060, Dst Port: 54625
+    Source Port: 5060
+    Destination Port: 54625
+    Length: 649
+    Checksum: 0xf781 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 2]
+    [Timestamps]
+        [Time since first frame: 84.884000 milliseconds]
+        [Time since previous frame: 84.884000 milliseconds]
+    UDP payload (641 bytes)
+Session Initiation Protocol (401)
+    Status-Line: SIP/2.0 401 Unauthorized
+        Status-Code: 401
+        [Resent Packet: False]
+        [Request Frame: 5]
+        [Response Time (ms): 84]
+    Message Header
+        Via: SIP/2.0/UDP 192.168.40.140:54625;received=172.48.242.167;rport=54625;branch=z9hG4bKPjb2b65d34eca94821bc76dffeef2b71d7
+            Transport: UDP
+            Sent-by Address: 192.168.40.140
+            Sent-by port: 54625
+            Received: 172.48.242.167
+            RPort: 54625
+            Branch: z9hG4bKPjb2b65d34eca94821bc76dffeef2b71d7
+        To: "+862356767450@cq.ctcims.cn"<sip:+862356767450@cq.ctcims.cn>;tag=ztesipGDm5SlkR*18-4-16648*dehf.18
+            SIP to display info: "+862356767450@cq.ctcims.cn"
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: ztesipGDm5SlkR*18-4-16648*dehf.18
+        From: "+862356767450@cq.ctcims.cn"<sip:+862356767450@cq.ctcims.cn>;tag=7cdf106125224534be743afe0eb3af8a
+            SIP from display info: "+862356767450@cq.ctcims.cn"
+            SIP from address: sip:+862356767450@cq.ctcims.cn
+                SIP from address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP from address Host Part: cq.ctcims.cn
+            SIP from tag: 7cdf106125224534be743afe0eb3af8a
+        Call-ID: 96648673641d4015b16b3e69a6cbd19e
+        [Generated Call-ID: 96648673641d4015b16b3e69a6cbd19e]
+        CSeq: 29726 REGISTER
+            Sequence Number: 29726
+            Method: REGISTER
+        Content-Length: 0
+        WWW-Authenticate: Digest realm="cq.ctcims.cn",domain="sip:scscf06.cq.ctcims.cn",nonce="35b79fa9aea965dbf5967674aeaf41d0",opaque="enRlX29wYXF1ZV8wMDEyMDAwNA==",stale=TRUE,algorithm=MD5,qop="auth"
+            Authentication Scheme: Digest
+            Realm: "cq.ctcims.cn"
+            Authentication Domain: "sip:scscf06.cq.ctcims.cn"
+            Nonce Value: "35b79fa9aea965dbf5967674aeaf41d0"
+            Opaque Value: "enRlX29wYXF1ZV8wMDEyMDAwNA=="
+            Stale Flag: TRUE
+            Algorithm: MD5
+            QOP: "auth"
+
+Frame 7: Packet, 1023 bytes on wire (8184 bits), 1023 bytes captured (8184 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:05:53.306580000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:05:53.306580000 UTC
+    Epoch Arrival Time: 1785081953.306580000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 211.000 microseconds]
+    [Time delta from previous displayed frame: 211.000 microseconds]
+    [Time since reference or first frame: 6.298820000 seconds]
+    Frame Number: 7
+    Frame Length: 1023 bytes (8184 bits)
+    Capture Length: 1023 bytes (8184 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3), Dst: VMware_74:15:77 (00:0c:29:74:15:77)
+    Destination: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 192.168.40.102, Dst: 172.26.160.38
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 1009
+    Identification: 0x3ad6 (15062)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 128
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 192.168.40.102
+    Destination Address: 172.26.160.38
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 54625, Dst Port: 5060
+    Source Port: 54625
+    Destination Port: 5060
+    Length: 989
+    Checksum: 0x393e [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 3]
+    [Timestamps]
+        [Time since first frame: 85.095000 milliseconds]
+        [Time since previous frame: 211.000 microseconds]
+    UDP payload (981 bytes)
+Session Initiation Protocol (REGISTER)
+    Request-Line: REGISTER sip:cq.ctcims.cn SIP/2.0
+        Method: REGISTER
+        Request-URI: sip:cq.ctcims.cn
+            Request-URI Host Part: cq.ctcims.cn
+        [Resent Packet: False]
+    Message Header
+        Via: SIP/2.0/UDP 192.168.40.140:54625;rport;branch=z9hG4bKPjf2bb333ae0c64e6a937da3fb1b1bb3a6
+            Transport: UDP
+            Sent-by Address: 192.168.40.140
+            Sent-by port: 54625
+            RPort: rport
+            Branch: z9hG4bKPjf2bb333ae0c64e6a937da3fb1b1bb3a6
+        Route: <sip:bac26.cq.ctcims.cn;lr>
+            Route URI: sip:bac26.cq.ctcims.cn;lr
+                Route Host Part: bac26.cq.ctcims.cn
+                Route URI parameter: lr
+        Max-Forwards: 70
+        From: "+862356767450@cq.ctcims.cn" <sip:+862356767450@cq.ctcims.cn>;tag=7cdf106125224534be743afe0eb3af8a
+            SIP from display info: "+862356767450@cq.ctcims.cn"
+            SIP from address: sip:+862356767450@cq.ctcims.cn
+                SIP from address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP from address Host Part: cq.ctcims.cn
+            SIP from tag: 7cdf106125224534be743afe0eb3af8a
+        To: "+862356767450@cq.ctcims.cn" <sip:+862356767450@cq.ctcims.cn>
+            SIP to display info: "+862356767450@cq.ctcims.cn"
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+        Call-ID: 96648673641d4015b16b3e69a6cbd19e
+        [Generated Call-ID: 96648673641d4015b16b3e69a6cbd19e]
+        CSeq: 29727 REGISTER
+            Sequence Number: 29727
+            Method: REGISTER
+        User-Agent: MicroSIP/3.22.5
+        Contact: "+862356767450@cq.ctcims.cn" <sip:+862356767450@192.168.40.140:54625;ob>
+            SIP C-URI display info: "+862356767450@cq.ctcims.cn"
+            Contact URI: sip:+862356767450@192.168.40.140:54625;ob
+                Contact URI User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 192.168.40.140
+                Contact URI Host Port: 54625
+                Contact URI parameter: ob
+        Expires: 300
+        Allow: PRACK, INVITE, ACK, BYE, CANCEL, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, OPTIONS
+        Authorization […]: Digest username="+862356767450@cq.ctcims.cn", realm="cq.ctcims.cn", nonce="35b79fa9aea965dbf5967674aeaf41d0", uri="sip:cq.ctcims.cn", response="723b647efc9591aec8e8d2650624066f", algorithm=MD5, cnonce="6bd51550c7764561
+            Authentication Scheme: Digest
+            Username: "+862356767450@cq.ctcims.cn"
+            Realm: "cq.ctcims.cn"
+            Nonce Value: "35b79fa9aea965dbf5967674aeaf41d0"
+            Authentication URI: "sip:cq.ctcims.cn"
+            Digest Authentication Response: "723b647efc9591aec8e8d2650624066f"
+            Algorithm: MD5
+            CNonce Value: "6bd51550c7764561b17dec0615c4038b"
+            Opaque Value: "enRlX29wYXF1ZV8wMDEyMDAwNA=="
+            QOP: auth
+            Nonce Count: 00000001
+        Content-Length:  0
+
+Frame 8: Packet, 878 bytes on wire (7024 bits), 878 bytes captured (7024 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:05:53.382002000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:05:53.382002000 UTC
+    Epoch Arrival Time: 1785081953.382002000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 75.422000 milliseconds]
+    [Time delta from previous displayed frame: 75.422000 milliseconds]
+    [Time since reference or first frame: 6.374242000 seconds]
+    Frame Number: 8
+    Frame Length: 878 bytes (7024 bits)
+    Capture Length: 878 bytes (7024 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: VMware_74:15:77 (00:0c:29:74:15:77), Dst: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+    Destination: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 172.26.160.38, Dst: 192.168.40.102
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x88 (DSCP: AF41, ECN: Not-ECT)
+        1000 10.. = Differentiated Services Codepoint: Assured Forwarding 41 (34)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 864
+    Identification: 0x498c (18828)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 249
+    Protocol: UDP (17)
+    Header Checksum: 0x3f29 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.26.160.38
+    Destination Address: 192.168.40.102
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 5060, Dst Port: 54625
+    Source Port: 5060
+    Destination Port: 54625
+    Length: 844
+    Checksum: 0x1202 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 4]
+    [Timestamps]
+        [Time since first frame: 160.517000 milliseconds]
+        [Time since previous frame: 75.422000 milliseconds]
+    UDP payload (836 bytes)
+Session Initiation Protocol (200)
+    Status-Line: SIP/2.0 200 OK
+        Status-Code: 200
+        [Resent Packet: False]
+        [Request Frame: 7]
+        [Response Time (ms): 75]
+    Message Header
+        Via: SIP/2.0/UDP 192.168.40.140:54625;received=172.48.242.167;rport=54625;branch=z9hG4bKPjf2bb333ae0c64e6a937da3fb1b1bb3a6
+            Transport: UDP
+            Sent-by Address: 192.168.40.140
+            Sent-by port: 54625
+            Received: 172.48.242.167
+            RPort: 54625
+            Branch: z9hG4bKPjf2bb333ae0c64e6a937da3fb1b1bb3a6
+        To: "+862356767450@cq.ctcims.cn"<sip:+862356767450@cq.ctcims.cn>;tag=ztesip8gs-QQ0B9mMbMhM*18-4-16648*deia.18
+            SIP to display info: "+862356767450@cq.ctcims.cn"
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: ztesip8gs-QQ0B9mMbMhM*18-4-16648*deia.18
+        From: "+862356767450@cq.ctcims.cn"<sip:+862356767450@cq.ctcims.cn>;tag=7cdf106125224534be743afe0eb3af8a
+            SIP from display info: "+862356767450@cq.ctcims.cn"
+            SIP from address: sip:+862356767450@cq.ctcims.cn
+                SIP from address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP from address Host Part: cq.ctcims.cn
+            SIP from tag: 7cdf106125224534be743afe0eb3af8a
+        Call-ID: 96648673641d4015b16b3e69a6cbd19e
+        [Generated Call-ID: 96648673641d4015b16b3e69a6cbd19e]
+        CSeq: 29727 REGISTER
+            Sequence Number: 29727
+            Method: REGISTER
+        Contact: "+862356767450@cq.ctcims.cn"<sip:+862356767450@192.168.40.140:54625;ob>;expires=50
+            SIP C-URI display info: "+862356767450@cq.ctcims.cn"
+            Contact URI: sip:+862356767450@192.168.40.140:54625;ob
+                Contact URI User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 192.168.40.140
+                Contact URI Host Port: 54625
+                Contact URI parameter: ob
+            Contact parameter: expires=50
+        P-Associated-URI: <sip:+862356767450@cq.ctcims.cn>
+        P-Associated-URI: <tel:+862356767450>
+        Date: Sun, 26 Jul 2026 16:05:52 GMT
+        Authentication-Info: nextnonce="f906ced5f4e7aa484b4709e8ef744cdd",qop=auth,rspauth="ffd60c7843e54820a85c33936a411e05",cnonce="6bd51550c7764561b17dec0615c4038b",nc=00000001
+            Next Nonce: "f906ced5f4e7aa484b4709e8ef744cdd"
+            QOP: auth
+            Response auth: "ffd60c7843e54820a85c33936a411e05"
+            CNonce Value: "6bd51550c7764561b17dec0615c4038b"
+            Nonce Count: 00000001
+        Content-Length: 0
+
+Frame 11: Packet, 1411 bytes on wire (11288 bits), 1411 bytes captured (11288 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:04.328833000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:04.328833000 UTC
+    Epoch Arrival Time: 1785081964.328833000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 5.093946000 seconds]
+    [Time delta from previous displayed frame: 10.946831000 seconds]
+    [Time since reference or first frame: 17.321073000 seconds]
+    Frame Number: 11
+    Frame Length: 1411 bytes (11288 bits)
+    Capture Length: 1411 bytes (11288 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip:sdp]
+    Character encoding: ASCII (0)
+Ethernet II, Src: VMware_74:15:77 (00:0c:29:74:15:77), Dst: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+    Destination: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 172.26.160.38, Dst: 192.168.40.102
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x88 (DSCP: AF41, ECN: Not-ECT)
+        1000 10.. = Differentiated Services Codepoint: Assured Forwarding 41 (34)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 1397
+    Identification: 0x52e0 (21216)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 249
+    Protocol: UDP (17)
+    Header Checksum: 0x33c0 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.26.160.38
+    Destination Address: 192.168.40.102
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 5060, Dst Port: 54625
+    Source Port: 5060
+    Destination Port: 54625
+    Length: 1377
+    Checksum: 0x103a [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 5]
+    [Timestamps]
+        [Time since first frame: 11.107348000 seconds]
+        [Time since previous frame: 10.946831000 seconds]
+    UDP payload (1369 bytes)
+Session Initiation Protocol (INVITE)
+    Request-Line: INVITE sip:+862356767450@192.168.40.140:54625;ob SIP/2.0
+        Method: INVITE
+        Request-URI: sip:+862356767450@192.168.40.140:54625;ob
+            Request-URI User Part: +862356767450
+            E.164 number (MSISDN): 862356767450
+                Country Code: China (People's Republic of) (86)
+            Request-URI Host Part: 192.168.40.140
+            Request-URI Host Port: 54625
+        [Resent Packet: False]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;branch=z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Branch: z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+        To: <sip:+862356767450@cq.ctcims.cn>
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        CSeq: 1000 INVITE
+            Sequence Number: 1000
+            Method: INVITE
+        Max-Forwards: 64
+        Contact: <sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050>
+            Contact URI: sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050
+                Contact URI User Part: +8619923747050
+                E.164 number (MSISDN): 8619923747050
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 172.26.160.38
+                Contact URI Host Port: 5060
+                Contact URI parameter: zte-did=1-1-20481-1430-12-758-65535
+                Contact URI parameter: zte-uid=200000+8619923747050
+        P-Called-Party-ID: <sip:+862356767450@cq.ctcims.cn>
+        Supported: 100rel,ztereplace,timer
+        P-Early-Media: supported
+        P-Asserted-Identity: <tel:19923747050>
+            SIP PAI Address: tel:19923747050
+        X-ZTE-Cookie: 7zs4rm6;id=so2p3D6SLiLUL2lFQKvAXP6cICrZ1Fc3GYzbMmfmpRDRdOINSoeaJSO3cfhd@zteims
+            [Expert Info (Note/Undecoded): Unrecognised SIP header (x-zte-cookie)]
+                [Unrecognised SIP header (x-zte-cookie)]
+                [Severity level: Note]
+                [Group: Undecoded]
+        Accept: application/sdp,\r\n\tmultipart/mixed
+        Accept-Contact: *;+g.3gpp.icsi-ref="urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel"
+        P-Preferred-Service: urn:urn-7:3gpp-service.ims.icsi.mmtel
+        X-FFCS-Cookie: id=07bbdff812694f6ab32693a6cb25b2f1@192.168.8.17
+            [Expert Info (Note/Undecoded): Unrecognised SIP header (x-ffcs-cookie)]
+                [Unrecognised SIP header (x-ffcs-cookie)]
+                [Severity level: Note]
+                [Group: Undecoded]
+        Allow: REGISTER,INVITE,ACK,CANCEL,BYE,OPTIONS,UPDATE,PRACK,REFER,INFO,NOTIFY,MESSAGE,SUBSCRIBE
+        Min-SE: 90
+        Session-Expires: 1800;refresher=uac
+        Content-Type: application/sdp
+        Content-Length: 203
+        Content-Disposition: session
+    Message Body
+        Session Description Protocol
+            Session Description Protocol Version (v): 0
+            Owner/Creator, Session Id (o): - 6 1867346861 IN IP4 172.26.160.89
+                Owner Username: -
+                Session ID: 6
+                Session Version: 1867346861
+                Owner Network Type: IN
+                Owner Address Type: IP4
+                Owner Address: 172.26.160.89
+            Session Name (s): -
+            Connection Information (c): IN IP4 172.26.160.89
+                Connection Network Type: IN
+                Connection Address Type: IP4
+                Connection Address: 172.26.160.89
+            Time Description, active time (t): 0 0
+                Session Start Time: 0
+                Session Stop Time: 0
+            Media Description, name and address (m): audio 24250 RTP/AVP 8 0 18 96
+                Media Type: audio
+                Media Port: 24250
+                Media Protocol: RTP/AVP
+                Media Format: ITU-T G.711 PCMA
+                Media Format: ITU-T G.711 PCMU
+                Media Format: ITU-T G.729
+                Media Format: DynamicRTP-Type-96
+            Media Attribute (a): ptime:20
+                Media Attribute Fieldname: ptime
+                Media Attribute Value: 20
+            Media Attribute (a): maxptime:240
+                Media Attribute Fieldname: maxptime
+                Media Attribute Value: 240
+            Media Attribute (a): rtpmap:96 telephone-event/8000
+                Media Attribute Fieldname: rtpmap
+                Media Format: 96
+                MIME Type: telephone-event
+                Sample Rate: 8000
+            Media Attribute (a): fmtp:96 0-15
+                Media Attribute Fieldname: fmtp
+                Media Format: 96 [telephone-event]
+                Media format specific parameters: 0-15
+            Media Attribute (a): sendrecv
+            [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+
+Frame 12: Packet, 355 bytes on wire (2840 bits), 355 bytes captured (2840 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:04.329565000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:04.329565000 UTC
+    Epoch Arrival Time: 1785081964.329565000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 732.000 microseconds]
+    [Time delta from previous displayed frame: 732.000 microseconds]
+    [Time since reference or first frame: 17.321805000 seconds]
+    Frame Number: 12
+    Frame Length: 355 bytes (2840 bits)
+    Capture Length: 355 bytes (2840 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3), Dst: VMware_74:15:77 (00:0c:29:74:15:77)
+    Destination: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 192.168.40.102, Dst: 172.26.160.38
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 341
+    Identification: 0x3ad7 (15063)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 128
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 192.168.40.102
+    Destination Address: 172.26.160.38
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 54625, Dst Port: 5060
+    Source Port: 54625
+    Destination Port: 5060
+    Length: 321
+    Checksum: 0x36a2 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 6]
+    [Timestamps]
+        [Time since first frame: 11.108080000 seconds]
+        [Time since previous frame: 732.000 microseconds]
+    UDP payload (313 bytes)
+Session Initiation Protocol (100)
+    Status-Line: SIP/2.0 100 Trying
+        Status-Code: 100
+        [Resent Packet: False]
+        [Request Frame: 11]
+        [Response Time (ms): 0]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;received=172.26.160.38;branch=z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Received: 172.26.160.38
+            Branch: z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        To: <sip:+862356767450@cq.ctcims.cn>
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+        CSeq: 1000 INVITE
+            Sequence Number: 1000
+            Method: INVITE
+        Content-Length:  0
+
+Frame 15: Packet, 1023 bytes on wire (8184 bits), 1023 bytes captured (8184 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:04.684267000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:04.684267000 UTC
+    Epoch Arrival Time: 1785081964.684267000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 343.000 microseconds]
+    [Time delta from previous displayed frame: 354.702000 milliseconds]
+    [Time since reference or first frame: 17.676507000 seconds]
+    Frame Number: 15
+    Frame Length: 1023 bytes (8184 bits)
+    Capture Length: 1023 bytes (8184 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip:sdp]
+    Character encoding: ASCII (0)
+Ethernet II, Src: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3), Dst: VMware_74:15:77 (00:0c:29:74:15:77)
+    Destination: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 192.168.40.102, Dst: 172.26.160.38
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 1009
+    Identification: 0x3ad8 (15064)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 128
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 192.168.40.102
+    Destination Address: 172.26.160.38
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 54625, Dst Port: 5060
+    Source Port: 54625
+    Destination Port: 5060
+    Length: 989
+    Checksum: 0x393e [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 7]
+    [Timestamps]
+        [Time since first frame: 11.462782000 seconds]
+        [Time since previous frame: 354.702000 milliseconds]
+    UDP payload (981 bytes)
+Session Initiation Protocol (200)
+    Status-Line: SIP/2.0 200 OK
+        Status-Code: 200
+        [Resent Packet: False]
+        [Request Frame: 11]
+        [Response Time (ms): 355]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;received=172.26.160.38;branch=z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Received: 172.26.160.38
+            Branch: z9hG4bKeb600e8457e8be0cccc7-E2PtaN1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        To: <sip:+862356767450@cq.ctcims.cn>;tag=196e4f96e0364fd78547e32a9b4b7a73
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: 196e4f96e0364fd78547e32a9b4b7a73
+        CSeq: 1000 INVITE
+            Sequence Number: 1000
+            Method: INVITE
+        Contact: "+862356767450@cq.ctcims.cn" <sip:+862356767450@192.168.40.140:54625;ob>
+            SIP C-URI display info: "+862356767450@cq.ctcims.cn"
+            Contact URI: sip:+862356767450@192.168.40.140:54625;ob
+                Contact URI User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 192.168.40.140
+                Contact URI Host Port: 54625
+                Contact URI parameter: ob
+        Allow: PRACK, INVITE, ACK, BYE, CANCEL, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, OPTIONS
+        Supported: replaces, 100rel, timer, norefersub
+        Session-Expires: 1800;refresher=uac
+        Require: timer
+        Content-Type: application/sdp
+        Content-Length:   319
+    Message Body
+        Session Description Protocol
+            Session Description Protocol Version (v): 0
+            Owner/Creator, Session Id (o): - 3994099564 3994099565 IN IP4 192.168.40.140
+                Owner Username: -
+                Session ID: 3994099564
+                Session Version: 3994099565
+                Owner Network Type: IN
+                Owner Address Type: IP4
+                Owner Address: 192.168.40.140
+            Session Name (s): pjmedia
+            Bandwidth Information (b): AS:84
+                Bandwidth Modifier: AS [Application Specific (RTP session bandwidth)]
+                Bandwidth Value: 84 kb/s
+            Time Description, active time (t): 0 0
+                Session Start Time: 0
+                Session Stop Time: 0
+            Session Attribute (a): X-nat:0
+                Session Attribute Fieldname: X-nat
+                Session Attribute Value: 0
+            Media Description, name and address (m): audio 4000 RTP/AVP 8 96
+                Media Type: audio
+                Media Port: 4000
+                Media Protocol: RTP/AVP
+                Media Format: ITU-T G.711 PCMA
+                Media Format: DynamicRTP-Type-96
+            Connection Information (c): IN IP4 192.168.40.140
+                Connection Network Type: IN
+                Connection Address Type: IP4
+                Connection Address: 192.168.40.140
+            Bandwidth Information (b): TIAS:64000
+                Bandwidth Modifier: TIAS [Transport Independent Application Specific maximum]
+                Bandwidth Value: 64000 b/s
+            Media Attribute (a): rtcp:4001 IN IP4 192.168.40.140
+                Media Attribute Fieldname: rtcp
+                Media Attribute Value: 4001 IN IP4 192.168.40.140
+            Media Attribute (a): sendrecv
+            Media Attribute (a): rtpmap:8 PCMA/8000
+                Media Attribute Fieldname: rtpmap
+                Media Format: 8
+                MIME Type: PCMA
+                Sample Rate: 8000
+            Media Attribute (a): ssrc:1459905695 cname:74a361a62f2a2425
+                Media Attribute Fieldname: ssrc
+                Media Attribute Value: 1459905695 cname:74a361a62f2a2425
+            Media Attribute (a): rtpmap:96 telephone-event/8000
+                Media Attribute Fieldname: rtpmap
+                Media Format: 96
+                MIME Type: telephone-event
+                Sample Rate: 8000
+            Media Attribute (a): fmtp:96 0-16
+                Media Attribute Fieldname: fmtp
+                Media Format: 96 [telephone-event]
+                Media format specific parameters: 0-16
+            [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+
+Frame 25: Packet, 606 bytes on wire (4848 bits), 606 bytes captured (4848 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:04.864398000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:04.864398000 UTC
+    Epoch Arrival Time: 1785081964.864398000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 568.000 microseconds]
+    [Time delta from previous displayed frame: 180.131000 milliseconds]
+    [Time since reference or first frame: 17.856638000 seconds]
+    Frame Number: 25
+    Frame Length: 606 bytes (4848 bits)
+    Capture Length: 606 bytes (4848 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: VMware_74:15:77 (00:0c:29:74:15:77), Dst: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+    Destination: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 172.26.160.38, Dst: 192.168.40.102
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x88 (DSCP: AF41, ECN: Not-ECT)
+        1000 10.. = Differentiated Services Codepoint: Assured Forwarding 41 (34)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 592
+    Identification: 0x538d (21389)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 249
+    Protocol: UDP (17)
+    Header Checksum: 0x3638 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.26.160.38
+    Destination Address: 192.168.40.102
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 5060, Dst Port: 54625
+    Source Port: 5060
+    Destination Port: 54625
+    Length: 572
+    Checksum: 0x938c [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 8]
+    [Timestamps]
+        [Time since first frame: 11.642913000 seconds]
+        [Time since previous frame: 180.131000 milliseconds]
+    UDP payload (564 bytes)
+Session Initiation Protocol (ACK)
+    Request-Line: ACK sip:+862356767450@192.168.40.140:54625;ob SIP/2.0
+        Method: ACK
+        Request-URI: sip:+862356767450@192.168.40.140:54625;ob
+            Request-URI User Part: +862356767450
+            E.164 number (MSISDN): 862356767450
+                Country Code: China (People's Republic of) (86)
+            Request-URI Host Part: 192.168.40.140
+            Request-URI Host Port: 54625
+        [Resent Packet: False]
+        [Request Frame: 11]
+        [Response Time (ms): 535]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;branch=z9hG4bKa54ada953df1cb2cc976-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Branch: z9hG4bKa54ada953df1cb2cc976-E2PtaN1
+        To: <sip:+862356767450@cq.ctcims.cn>;tag=196e4f96e0364fd78547e32a9b4b7a73
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: 196e4f96e0364fd78547e32a9b4b7a73
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        CSeq: 1000 ACK
+            Sequence Number: 1000
+            Method: ACK
+        Max-Forwards: 64
+        Contact: <sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050>;audio;video;+g.3gpp.icsi-ref="urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel"
+            Contact URI: sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050
+                Contact URI User Part: +8619923747050
+                E.164 number (MSISDN): 8619923747050
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 172.26.160.38
+                Contact URI Host Port: 5060
+                Contact URI parameter: zte-did=1-1-20481-1430-12-758-65535
+                Contact URI parameter: zte-uid=200000+8619923747050
+            Contact parameter: audio
+            Contact parameter: video
+            Contact parameter: +g.3gpp.icsi-ref="urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel"\r\n
+        Content-Length: 0
+
+Frame 488: Packet, 757 bytes on wire (6056 bits), 757 bytes captured (6056 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:09.427200000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:09.427200000 UTC
+    Epoch Arrival Time: 1785081969.427200000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 3.247000 milliseconds]
+    [Time delta from previous displayed frame: 4.562802000 seconds]
+    [Time since reference or first frame: 22.419440000 seconds]
+    Frame Number: 488
+    Frame Length: 757 bytes (6056 bits)
+    Capture Length: 757 bytes (6056 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: VMware_74:15:77 (00:0c:29:74:15:77), Dst: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+    Destination: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 172.26.160.38, Dst: 192.168.40.102
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x88 (DSCP: AF41, ECN: Not-ECT)
+        1000 10.. = Differentiated Services Codepoint: Assured Forwarding 41 (34)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 743
+    Identification: 0x5826 (22566)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 249
+    Protocol: UDP (17)
+    Header Checksum: 0x3108 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 172.26.160.38
+    Destination Address: 192.168.40.102
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 5060, Dst Port: 54625
+    Source Port: 5060
+    Destination Port: 54625
+    Length: 723
+    Checksum: 0x86aa [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 10]
+    [Timestamps]
+        [Time since first frame: 16.205715000 seconds]
+        [Time since previous frame: 2.044968000 seconds]
+    UDP payload (715 bytes)
+Session Initiation Protocol (BYE)
+    Request-Line: BYE sip:+862356767450@192.168.40.140:54625;ob SIP/2.0
+        Method: BYE
+        Request-URI: sip:+862356767450@192.168.40.140:54625;ob
+            Request-URI User Part: +862356767450
+            E.164 number (MSISDN): 862356767450
+                Country Code: China (People's Republic of) (86)
+            Request-URI Host Part: 192.168.40.140
+            Request-URI Host Port: 54625
+        [Resent Packet: False]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;branch=z9hG4bK4cae0ceba3584738f432-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Branch: z9hG4bK4cae0ceba3584738f432-E2PtaN1
+        To: <sip:+862356767450@cq.ctcims.cn>;tag=196e4f96e0364fd78547e32a9b4b7a73
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: 196e4f96e0364fd78547e32a9b4b7a73
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        CSeq: 1001 BYE
+            Sequence Number: 1001
+            Method: BYE
+        Max-Forwards: 64
+        Contact: <sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050>;audio;video;+g.3gpp.icsi-ref="urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel"
+            Contact URI: sip:+8619923747050@172.26.160.38:5060;zte-did=1-1-20481-1430-12-758-65535;zte-uid=200000+8619923747050
+                Contact URI User Part: +8619923747050
+                E.164 number (MSISDN): 8619923747050
+                    Country Code: China (People's Republic of) (86)
+                Contact URI Host Part: 172.26.160.38
+                Contact URI Host Port: 5060
+                Contact URI parameter: zte-did=1-1-20481-1430-12-758-65535
+                Contact URI parameter: zte-uid=200000+8619923747050
+            Contact parameter: audio
+            Contact parameter: video
+            Contact parameter: +g.3gpp.icsi-ref="urn%3Aurn-7%3A3gpp-service.ims.icsi.mmtel"\r\n
+        Reason: RELEASE_CAUSE;cause= 1;text= "User ends call"
+            Reason protocols: RELEASE_CAUSE
+            Cause: 1
+            Text: User ends call
+        Allow: REGISTER,INVITE,ACK,CANCEL,BYE,OPTIONS,UPDATE,PRACK,REFER,INFO,NOTIFY,MESSAGE,SUBSCRIBE
+        Content-Length: 0
+
+Frame 489: Packet, 385 bytes on wire (3080 bits), 385 bytes captured (3080 bits) on interface \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}, id 0
+    Section number: 1
+    Interface id: 0 (\Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF})
+        Interface name: \Device\NPF_{E4516EC3-10F3-4E00-B82C-FA9ABCA26EFF}
+        Interface description: 以太网 2
+    Encapsulation type: Ethernet (1)
+    Arrival Time: Jul 27, 2026 00:06:09.427391000 中国标准时间
+    UTC Arrival Time: Jul 26, 2026 16:06:09.427391000 UTC
+    Epoch Arrival Time: 1785081969.427391000
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 191.000 microseconds]
+    [Time delta from previous displayed frame: 191.000 microseconds]
+    [Time since reference or first frame: 22.419631000 seconds]
+    Frame Number: 489
+    Frame Length: 385 bytes (3080 bits)
+    Capture Length: 385 bytes (3080 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: eth:ethertype:ip:udp:sip]
+    Character encoding: ASCII (0)
+Ethernet II, Src: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3), Dst: VMware_74:15:77 (00:0c:29:74:15:77)
+    Destination: VMware_74:15:77 (00:0c:29:74:15:77)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Source: RealtekSemic_68:00:b3 (00:e0:4c:68:00:b3)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+    Type: IPv4 (0x0800)
+    [Stream index: 0]
+Internet Protocol Version 4, Src: 192.168.40.102, Dst: 172.26.160.38
+    0100 .... = Version: 4
+    .... 0101 = Header Length: 20 bytes (5)
+    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
+        0000 00.. = Differentiated Services Codepoint: Default (0)
+        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
+    Total Length: 371
+    Identification: 0x3ada (15066)
+    000. .... = Flags: 0x0
+        0... .... = Reserved bit: Not set
+        .0.. .... = Don't fragment: Not set
+        ..0. .... = More fragments: Not set
+    ...0 0000 0000 0000 = Fragment Offset: 0
+    Time to Live: 128
+    Protocol: UDP (17)
+    Header Checksum: 0x0000 [validation disabled]
+    [Header checksum status: Unverified]
+    Source Address: 192.168.40.102
+    Destination Address: 172.26.160.38
+    [Stream index: 1]
+User Datagram Protocol, Src Port: 54625, Dst Port: 5060
+    Source Port: 54625
+    Destination Port: 5060
+    Length: 351
+    Checksum: 0x36c0 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+    [Stream Packet Number: 11]
+    [Timestamps]
+        [Time since first frame: 16.205906000 seconds]
+        [Time since previous frame: 191.000 microseconds]
+    UDP payload (343 bytes)
+Session Initiation Protocol (200)
+    Status-Line: SIP/2.0 200 OK
+        Status-Code: 200
+        [Resent Packet: False]
+        [Request Frame: 488]
+        [Response Time (ms): 0]
+        [Release Time (ms): 0]
+    Message Header
+        Via: SIP/2.0/UDP 172.26.160.38:5060;received=172.26.160.38;branch=z9hG4bK4cae0ceba3584738f432-E2PtaN1
+            Transport: UDP
+            Sent-by Address: 172.26.160.38
+            Sent-by port: 5060
+            Received: 172.26.160.38
+            Branch: z9hG4bK4cae0ceba3584738f432-E2PtaN1
+        Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims
+        [Generated Call-ID: Ygpy92SK0cg-R1TS9b1v1bjga@zteims]
+        From: <tel:+8619923747050>;tag=ztesipnRW2fDks9Br9*1-1-20481*igha.1
+            SIP from address: tel:+8619923747050
+            SIP from tag: ztesipnRW2fDks9Br9*1-1-20481*igha.1
+        To: <sip:+862356767450@cq.ctcims.cn>;tag=196e4f96e0364fd78547e32a9b4b7a73
+            SIP to address: sip:+862356767450@cq.ctcims.cn
+                SIP to address User Part: +862356767450
+                E.164 number (MSISDN): 862356767450
+                    Country Code: China (People's Republic of) (86)
+                SIP to address Host Part: cq.ctcims.cn
+            SIP to tag: 196e4f96e0364fd78547e32a9b4b7a73
+        CSeq: 1001 BYE
+            Sequence Number: 1001
+            Method: BYE
+        Content-Length:  0
+

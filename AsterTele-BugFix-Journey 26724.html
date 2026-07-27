@@ -357,26 +357,26 @@
     <span>📦 SIPSorcery 10.0.12</span>
     <span>🖥️ .NET 8 / C#</span>
     <span>📱 Android Zoiper</span>
-    <span>📅 2026-07-27</span>
+    <span>📅 2026-07-24</span>
   </div>
 </div>
 
 <!-- ===== STATS ===== -->
-  <div class="stats">
+<div class="stats">
   <div class="stat-card">
-    <span class="num" style="color:var(--red)">8</span>
+    <span class="num" style="color:var(--red)">6</span>
     <span class="label">Bug 轮次</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--orange)">2</span>
+    <span class="num" style="color:var(--orange)">1</span>
     <span class="label">根因发现</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--green)">7</span>
+    <span class="num" style="color:var(--green)">5</span>
     <span class="label">核心修复</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--accent)">~2200</span>
+    <span class="num" style="color:var(--accent)">~980</span>
     <span class="label">最终代码行数</span>
   </div>
 </div>
@@ -690,99 +690,6 @@
       </div>
     </div>
 
-    <!-- Phase 9: SIP Trunk 里程碑 -->
-    <div class="timeline-item milestone">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-milestone">里程碑</span>
-        <span class="timeline-title">SIP Trunk 外呼 — 对接中国电信 IMS</span>
-      </div>
-      <div class="timeline-body">
-        <p>新增 <code>SipTrunkManager.cs</code> 模块，实现与运营商 SIP Trunk 的对接，让内机拨打外线号码（按 9 出局）。</p>
-        <div class="discovery-box">
-          <div class="tag">核心功能</div>
-          <p>1. <strong>REGISTER 注册</strong>：向运营商 P-CSCF (172.26.160.38) 注册 Trunk 号码，含 401 Digest 重认证</p>
-          <p>2. <strong>外呼 INVITE</strong>：内机按 9 出局时，B2BUA 向运营商发起 INVITE，含 SDP 透传</p>
-          <p>3. <strong>183 Session Progress</strong>：运营商返回早期媒体（回铃音/语音提示），透传给内机</p>
-          <p>4. <strong>入站 INVITE</strong>：运营商呼入时，DID 映射到内机并振铃</p>
-          <p>5. <strong>呼叫转移</strong>：Busy / NoAnswer / Unconditional 三种转移模式</p>
-          <p>6. <strong>DTMF</strong>：SIP INFO 方式的 DTMF 透传</p>
-        </div>
-        <div class="problem-box">
-          <div class="tag">遗留问题</div>
-          <p>纯信令 B2BUA 模式下，外呼 INVITE 的 SDP 中 <code>c=</code> 地址被替换为 OutboundAddress (172.48.242.167)，但 RTP 端口没有路由器 NAT 转发 → 运营商往公网 IP 发的 RTP 包被路由器丢弃 → 内机听不到早期媒体/语音提示。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 10: BYE 路由修复 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #6</span>
-        <span class="timeline-title">外线通话 BYE 路由错误 — Request-URI 指向自身</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p>外线通话中，运营商发 re-INVITE 后 BYE 路由出错。被叫侧挂断时，AsterTele 向主叫侧发 BYE 的 Request-URI 用了 <code>session.CallerInvite.URI</code>，指向自己的 Contact 地址而非运营商的 Contact。</p>
-          <p>同时，入站通话中运营商发 re-INVITE（更新会话参数），被错误当作 INVITE 重传处理，导致运营商 24 秒后主动 BYE 挂断。</p>
-        </div>
-        <div class="discovery-box">
-          <div class="tag">根因分析</div>
-          <p><strong>BYE 路由：</strong>B2BUA 构造 BYE 时未使用对方在 200 OK/Contact 中声明的地址，而是用了 INVITE 的原始 URI。当通话经过 re-INVITE 后，运营商的 Contact 可能已变化。</p>
-          <p><strong>re-INVITE 误判：</strong><code>HandleInvite</code> 中 <code>existingByCaller!=null</code> 分支无条件走重传逻辑，没有做 CSeq 比较。CSeq 递增的 re-INVITE 被当作 CSeq 相同的重传直接丢弃。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复 1：缓存 Contact URI</div>
-          <p>在 <code>CallSession</code> 中新增 <code>CallerContactUri</code> / <code>CalleeContactUri</code> 字段，在创建会话时（<code>CreateSession</code>）和收到 200 OK 时（<code>ForwardCalleeResponse</code>）保存运营商/被叫的 Contact URI。</p>
-          <p><code>SendByeToCaller</code> 和 <code>SendByeToCallee</code> 使用缓存的 Contact URI 构造 BYE 的 Request-URI。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复 2：CSeq 区分 re-INVITE 与重传</div>
-          <p>在 <code>CallSession</code> 中缓存原始 INVITE 的 CSeq（<code>CallerInviteCSeq</code> 字段）。<code>HandleInvite</code> 的 <code>existingByCaller</code> 分支中：</p>
-          <pre>CSeq 相同 → 重传, 重发最后响应
-CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复 3：路由集 (Route Set) 支持</div>
-          <p><code>SendByeToCaller</code> / <code>SendByeToCallee</code> 构造 BYE 时，按 RFC 3261 将 <code>SIPRouteSet</code> 的 reversed 路由集添加为 Route 头，确保 BYE 沿原对话路径路由回运营商。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 11: RTP 中继尝试与回滚 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #7</span>
-        <span class="timeline-title">RTP 中继方案 — 回声环路，实测失败并回滚</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p>为解决「内机打外机，外机拒接时内机听不到提示音」的核心问题，实现了完整的 RTP 中继方案：<code>RtpRelaySession.cs</code>（双向 RTP/RTCP UDP 转发）+ <code>SdpModifier.cs</code>（SDP 修改工具）。</p>
-          <p>实测结果：<strong>只能听到自己说的话（回声/环路）</strong>，相当于 TX/RX 短接。</p>
-        </div>
-        <div class="discovery-box">
-          <div class="tag">失败根因分析</div>
-          <p><strong>单 socket 双向转发的方向判断不可靠。</strong></p>
-          <p><code>RtpRelaySession</code> 用一个 RTP socket 接收双方包，通过 <code>IsFromCaller()</code> 判断方向后转发。但：</p>
-          <p>1. 初始阶段（双方都未发送过包时），方向默认假设「来自分机侧」，第一个到达的包方向可能误判</p>
-          <p>2. NAT 环境下源地址不可靠，内机经 NAT 后的源端口与 SDP 声明端口不一致</p>
-          <p>3. 方向一旦误判，后续所有包都沿错误方向转发，形成回声环路</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">处置：完整回滚</div>
-          <p>删除了 <code>RtpRelaySession.cs</code> 和 <code>SdpModifier.cs</code>，<code>CallManager.cs</code> / <code>SipSoftSwitch.cs</code> / <code>SipOptions.cs</code> / <code>appsettings.json</code> / <code>Program.cs</code> 均恢复原状。编译验证通过，0 错误 0 警告。</p>
-          <p>路由器 RTP 端口转发也已删除。</p>
-        </div>
-        <div class="discovery-box">
-          <div class="tag">后续方向</div>
-          <p><strong>方案 A：</strong>用两个独立的 RTP socket（分机侧一个、运营商侧一个），彻底避免方向判断</p>
-          <p><strong>方案 B：</strong>使用 SIPSorcery 自带的 <code>RTPChannel</code> / <code>RTPSession</code> 做 RTP 中继</p>
-          <p><strong>方案 C：</strong>轻量级 UDP 转发但用两个 socket 分别绑定不同端口</p>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 <div class="section">
@@ -863,30 +770,6 @@ CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
         <td>RemoveSessionByExtension + 定时清理</td>
         <td><span class="badge badge-fixed">已修复</span></td>
       </tr>
-      <tr>
-        <td>外线 BYE 路由错误</td>
-        <td>Request-URI 指向自身 / 缺少 Route 头</td>
-        <td>缓存 Contact URI + Route Set 路由</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>re-INVITE 被误判为重传</td>
-        <td>HandleInvite 未比较 CSeq</td>
-        <td>CSeq 比较区分重传 vs re-INVITE</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>RTP 中继回声环路</td>
-        <td>单 socket 方向判断不可靠</td>
-        <td>回滚，待重新设计双 socket 方案</td>
-        <td><span class="badge badge-unfixed">未修复</span></td>
-      </tr>
-      <tr>
-        <td>外线拒接无提示音</td>
-        <td>纯信令 B2BUA，RTP 不通</td>
-        <td>依赖 RTP 中继方案</td>
-        <td><span class="badge badge-unfixed">未修复</span></td>
-      </tr>
     </tbody>
   </table>
 </div>
@@ -909,16 +792,8 @@ CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
       <p>新增 <code>SendAckForNon2xxToCallee()</code> 方法。在 BusyHere / Decline / 4xx / 5xx 响应到达时立即向被叫发 ACK，停止重传。</p>
     </div>
     <div class="summary-card">
-      <h4><span style="color:var(--green)">⑤</span> SIP Trunk 外呼</h4>
-      <p>新增 <code>SipTrunkManager.cs</code>，实现与运营商 IMS 的 REGISTER 注册（含 401 重认证）、外呼 INVITE、入站 INVITE 映射、呼叫转移（Busy/NoAnswer/Unconditional）、DTMF (SIP INFO) 透传。</p>
-    </div>
-    <div class="summary-card">
-      <h4><span style="color:var(--green)">⑥</span> re-INVITE 处理 + BYE 路由修复</h4>
-      <p>通过 CSeq 比较区分 INVITE 重传与 re-INVITE，缓存运营商/被叫的 Contact URI 用于 BYE 路由，按 RFC 3261 添加 Route Set 确保 BYE 沿原对话路径路由。</p>
-    </div>
-    <div class="summary-card">
-      <h4><span style="color:var(--red)">⑦</span> RTP 中继（回滚）</h4>
-      <p>实现完整 RTP 中继方案（RtpRelaySession + SdpModifier），但单 socket 双向转发的方向判断不可靠导致回声环路，已完整回滚。核心问题（外线拒接无提示音）仍待解决。</p>
+      <h4><span style="color:var(--green)">④</span> BYE 双边挂断追踪</h4>
+      <p>废弃全局 <code>ByeProcessed</code>，改用 <code>CallerHungUp</code>/<code>CalleeHungUp</code> 独立追踪。BYE 200 OK 响应通过 <code>HandleBye200Ok()</code> 处理，确认送达后停止重传。双方均挂断时立即清理。</p>
     </div>
   </div>
 </div>
@@ -958,24 +833,6 @@ CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
         <p>即使路由正确，网络抖动也可能导致 ACK 丢失。主动代替主叫发 ACK（Proxy ACK）和 BYE 超时重传，是 B2BUA 可靠性的关键保障。</p>
       </div>
     </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>re-INVITE 和 INVITE 重传的 CSeq 差异是区分二者的唯一可靠标准。</strong></p>
-        <p>运营商在通话建立后可能发 re-INVITE（更新编解码/会话参数），CSeq 会递增。如果 B2BUA 不比较 CSeq，re-INVITE 会被当作重传丢弃，导致运营商 24 秒超时后主动 BYE 挂断。</p>
-      </div>
-    </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>单个 UDP socket 做双向 RTP 转发是灾难性设计。</strong></p>
-        <p>NAT 环境下源地址不可靠，初始阶段方向判断极易误判，一旦方向反了就是回声环路。正确做法：每个方向使用独立 socket，或利用 SIPSorcery 原生 RTPChannel。</p>
-      </div>
-    </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>纯信令 B2BUA 在 NAT 场景下存在天然缺陷——RTP 不通。</strong></p>
-        <p>外呼 INVITE 的 SDP 中 <code>c=</code> 地址被替换为 OutboundAddress（公网 IP），但 RTP 端口没有 NAT 映射，运营商发的 RTP 包被路由器丢弃。要让媒体流通过，必须实现 RTP 中继或配置端口转发。</p>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -987,25 +844,21 @@ CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
       <tr><th>文件</th><th>行数</th><th>职责</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>SipSoftSwitch.cs</code></td><td>~2200</td><td>核心：SIP B2BUA 逻辑、智能路由、消息转发、双边 BYE、SIP Trunk 外呼/入站、re-INVITE</td></tr>
-      <tr><td><code>CallManager.cs</code></td><td>~250</td><td>会话管理、去重、双边挂断状态机、Contact URI 缓存</td></tr>
-      <tr><td><code>SipTrunkManager.cs</code></td><td>~400</td><td>SIP Trunk 管理：REGISTER 注册、外呼 INVITE、传输层</td></tr>
-      <tr><td><code>DnsResolver.cs</code></td><td>~60</td><td>DNS SRV/NAPTR 解析工具</td></tr>
-      <tr><td><code>IvrSession.cs</code></td><td>~50</td><td>IVR 会话骨架（留接口，待实现）</td></tr>
-      <tr><td><code>VoiceMailSession.cs</code></td><td>~50</td><td>语音信箱骨架（留接口，待实现）</td></tr>
+      <tr><td><code>SipSoftSwitch.cs</code></td><td>~1070</td><td>核心：SIP B2BUA 逻辑、智能路由、消息转发、双边 BYE</td></tr>
+      <tr><td><code>CallManager.cs</code></td><td>~220</td><td>会话管理、去重、双边挂断状态机</td></tr>
       <tr><td><code>DigestAuthenticator.cs</code></td><td>~120</td><td>Digest 401 认证（5 分钟 nonce 复用）</td></tr>
       <tr><td><code>RegistrationStore.cs</code></td><td>~140</td><td>分机注册存储与过期清理</td></tr>
-      <tr><td><code>SipOptions.cs</code></td><td>~70</td><td>配置模型（含 AdvertisedAddress、Trunk 配置）</td></tr>
+      <tr><td><code>SipOptions.cs</code></td><td>~50</td><td>配置模型（含 AdvertisedAddress）</td></tr>
       <tr><td><code>Program.cs</code></td><td>~150</td><td>入口 + 文件日志 + 状态监控</td></tr>
-      <tr><td><code>appsettings.json</code></td><td>~40</td><td>配置：8001/8002/8003, 端口, NAT, Trunk</td></tr>
+      <tr><td><code>appsettings.json</code></td><td>~36</td><td>配置：8001/8002/8003, 端口, NAT</td></tr>
     </tbody>
   </table>
 </div>
 
 <!-- Footer -->
 <div class="footer">
-  AsterTele SIP SoftSwitch v1.1 — Bug 修复历程报告<br>
-  生成于 2026-07-27 · TeleAgent 自动生成
+  AsterTele SIP SoftSwitch v1.0 — Bug 修复历程报告<br>
+  生成于 2026-07-24 · TeleAgent 自动生成
 </div>
 
 </div>

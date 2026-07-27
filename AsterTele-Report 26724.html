@@ -280,14 +280,13 @@
 <!-- ======== HERO ======== -->
 <div class="hero">
   <h1>Aster<span>Tele</span></h1>
-  <p class="subtitle">基于 C# + SIPSorcery 的 SIP 软交换机 (B2BUA)，实现内部分机注册、Digest 认证、点对点通话路由与 SIP Trunk 外呼</p>
+  <p class="subtitle">基于 C# + SIPSorcery 的 SIP 软交换机 (B2BUA)，实现内部分机注册、Digest 认证与点对点通话路由</p>
   <div class="meta">
     <span class="tag"><b>.NET 8</b> Console App</span>
     <span class="tag"><b>SIPSorcery 10.0.12</b> SIP/RTP Library</span>
     <span class="tag"><b>B2BUA</b> Back-to-Back User Agent</span>
-     <span class="tag">端口 <b>5060</b> UDP</span>
-     <span class="tag">分机 <b>8001 / 8002</b></span>
-     <span class="tag">SIP Trunk <b>中国电信 IMS</b></span>
+    <span class="tag">端口 <b>5060</b> UDP</span>
+    <span class="tag">分机 <b>8001 / 8002</b></span>
   </div>
 </div>
 
@@ -297,7 +296,6 @@
   <a href="#arch">架构总览</a>
   <a href="#modules">代码模块</a>
   <a href="#flow">信令流程</a>
-  <a href="#trunk">SIP Trunk</a>
   <a href="#usage">使用指南</a>
   <a href="#zoiper">Zoiper 配置</a>
   <a href="#extend">扩展方向</a>
@@ -407,15 +405,11 @@
       <tr><th>模块</th><th>文件</th><th>职责</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>SipSoftSwitch</strong></td><td>SipSoftSwitch.cs</td><td>核心服务，接收 SIP 消息并分发处理 REGISTER/INVITE/BYE/re-INVITE 等</td></tr>
-      <tr><td><strong>SipTrunkManager</strong></td><td>SipTrunkManager.cs</td><td>SIP Trunk 管理：向运营商注册、外呼 INVITE、传输层封装</td></tr>
-      <tr><td><strong>DnsResolver</strong></td><td>DnsResolver.cs</td><td>DNS SRV/NAPTR 解析工具</td></tr>
+      <tr><td><strong>SipSoftSwitch</strong></td><td>SipSoftSwitch.cs</td><td>核心服务，接收 SIP 消息并分发处理 REGISTER/INVITE/BYE 等</td></tr>
       <tr><td><strong>DigestAuthenticator</strong></td><td>DigestAuthenticator.cs</td><td>实现 SIP Digest 401 挑战与响应验证</td></tr>
       <tr><td><strong>RegistrationStore</strong></td><td>RegistrationStore.cs</td><td>分机注册信息存储、查找、过期清理</td></tr>
-      <tr><td><strong>CallManager</strong></td><td>CallManager.cs</td><td>B2BUA 呼叫会话管理 (创建/查找/移除/Contact URI 缓存)</td></tr>
-      <tr><td><strong>IvrSession</strong></td><td>IvrSession.cs</td><td>IVR 会话骨架（留接口，待实现）</td></tr>
-      <tr><td><strong>VoiceMailSession</strong></td><td>VoiceMailSession.cs</td><td>语音信箱骨架（留接口，待实现）</td></tr>
-      <tr><td><strong>SipOptions</strong></td><td>SipOptions.cs</td><td>配置模型 (端口、域名、分机列表、Trunk 配置)</td></tr>
+      <tr><td><strong>CallManager</strong></td><td>CallManager.cs</td><td>B2BUA 呼叫会话管理 (创建/查找/移除)</td></tr>
+      <tr><td><strong>SipOptions</strong></td><td>SipOptions.cs</td><td>配置模型 (端口、域名、分机列表)</td></tr>
       <tr><td><strong>Program</strong></td><td>Program.cs</td><td>应用入口、DI 容器、状态监控面板</td></tr>
     </tbody>
   </table>
@@ -615,90 +609,11 @@
   </div>
 </section>
 
-<!-- ======== 6. SIP Trunk ======== -->
-<section id="trunk">
-  <h2><span class="num">6</span>SIP Trunk 外呼</h2>
-
-  <h3>6.1 网络拓扑</h3>
-  <div class="flow">
-<span class="caller">内机 (8001)</span>    <span class="server">AsterTele</span>    <span class="server">路由器</span>    <span class="callee">运营商 IMS</span>
-192.168.40.x   192.168.40.102   192.168.40.1    172.26.160.38
-      <span class="arrow">|</span>              <span class="arrow">|</span>             Outbound: 172.48.242.167   <span class="arrow">|</span>
-      <span class="arrow">|</span>  SIP (LAN)   <span class="arrow">|</span>  SIP (NAT)    <span class="arrow">|</span>  SIP (WAN)    <span class="arrow">|</span>
-      <span class="arrow">|</span>  &lt;--------&gt;  <span class="arrow">|</span>  &lt;--------&gt;  <span class="arrow">|</span>  &lt;--------&gt;  <span class="arrow">|</span>
-      <span class="arrow">|</span>              <span class="arrow">|</span>                            <span class="arrow">|</span>
-      <span class="arrow">|</span>              <span class="arrow">|</span>  RTP (NAT 问题!)            <span class="arrow">|</span>
-      <span class="arrow">|</span>  &lt;================== X ================&gt;  <span class="arrow">|</span>
-  </div>
-
-  <div class="note">
-    <strong>RTP 不通的根因：</strong>外呼 INVITE 的 SDP 中 <code>c=</code> 地址被替换为 OutboundAddress (172.48.242.167)，但 RTP 端口没有路由器 NAT 转发。
-    运营商往公网 IP 发的 RTP 包被路由器丢弃，导致早期媒体（183 Session Progress）和通话媒体都到不了内机。
-    <br><strong>解决方向：</strong>需要实现 RTP 中继（双 socket 方案）或配置路由器端口转发。
-  </div>
-
-  <h3>6.2 外呼信令流程</h3>
-  <div class="flow">
-<span class="caller">内机 (按9)</span>          <span class="server">AsterTele</span>          <span class="callee">运营商 P-CSCF</span>
-   <span class="arrow">|</span>  INVITE sip:9021...  <span class="arrow">------&gt;</span>  <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  1. 检测出局前缀 "9"       <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  2. 去掉前缀, 构造外呼 INVITE  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  3. Contact/Via 使用 OutboundAddress  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  INVITE (Trunk)        <span class="arrow">------&gt;</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  401 Unauthorized       <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  INVITE + Auth          <span class="arrow">------&gt;</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  100 Trying             <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  183 Session Progress   <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>  183 (转发)            <span class="arrow">&lt;------</span>  <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  180 Ringing            <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>  180 (转发)            <span class="arrow">&lt;------</span>  <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  200 OK + SDP           <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>  200 OK (转发)         <span class="arrow">&lt;------</span>  <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>  ACK                   <span class="arrow">------&gt;</span>  <span class="arrow">|</span>  ACK                   <span class="arrow">------&gt;</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  re-INVITE (CSeq递增)  <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  200 OK (re-INVITE)    <span class="arrow">------&gt;</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>                           <span class="arrow">|</span>
-   <span class="arrow">|</span>                      <span class="arrow">|</span>  BYE                   <span class="arrow">&lt;------</span>  <span class="arrow">|</span>
-   <span class="arrow">|</span>  BYE (转发)            <span class="arrow">&lt;------</span>  <span class="arrow">|</span>  200 OK                <span class="arrow">------&gt;</span>  <span class="arrow">|</span>
-  </div>
-
-  <h3>6.3 已知问题与待办</h3>
-  <table>
-    <thead>
-      <tr><th>问题</th><th>根因</th><th>状态</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>外线拒接/忙，内机听不到提示音</td>
-        <td>RTP 不通，运营商早期媒体到不了内机</td>
-        <td><span class="badge badge-red">待解决</span></td>
-      </tr>
-      <tr>
-        <td>re-INVITE 被误判为重传</td>
-        <td>HandleInvite 未比较 CSeq</td>
-        <td><span class="badge badge-green">已修复</span></td>
-      </tr>
-      <tr>
-        <td>BYE 路由错误</td>
-        <td>Request-URI 指向自身 / 缺 Route Set</td>
-        <td><span class="badge badge-green">已修复</span></td>
-      </tr>
-      <tr>
-        <td>RTP 中继回声环路</td>
-        <td>单 socket 方向判断不可靠</td>
-        <td><span class="badge badge-red">已回滚，待重新设计</span></td>
-      </tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- ======== 7. 使用指南 ======== -->
+<!-- ======== 5. 使用指南 ======== -->
 <section id="usage">
-  <h2><span class="num">7</span>使用指南</h2>
+  <h2><span class="num">5</span>使用指南</h2>
 
-  <h3>7.1 编译与运行</h3>
+  <h3>5.1 编译与运行</h3>
   <pre><code><span class="cm"># 进入项目目录</span>
 <span class="fn">cd</span> I:\XiongsNext\AsterTele
 
@@ -721,7 +636,7 @@ info: AsterTele.RegistrationStore[0]
 info: AsterTele.RegistrationStore[0]
       加载分机配置: 8002 / Extension 8002</code></pre>
 
-  <h3>7.2 添加新分机</h3>
+  <h3>5.2 添加新分机</h3>
   <p>编辑 <code>appsettings.json</code>，在 Extensions 数组中添加条目，重启服务即可：</p>
   <pre><code><span class="tag-code">{</span>
   <span class="str">"Number"</span>: <span class="str">"8003"</span>,
@@ -730,23 +645,13 @@ info: AsterTele.RegistrationStore[0]
   <span class="str">"Context"</span>: <span class="str">"internal"</span>
 <span class="tag-code">}</span></code></pre>
 
-  <h3>7.3 SIP Trunk 配置</h3>
-  <p>编辑 <code>appsettings.json</code>，添加 Trunk 相关配置：</p>
-  <pre><code>"OutboundAddress": "172.48.242.167",  // 公网 IP (路由器 WAN)
-"Trunk": {
-  "Enabled": true,
-  "TrunkNumber": "05718888xxxx",
-  "OutboundPrefix": "9",
-  "P-CscfAddress": "172.26.160.38"
-}</code></pre>
-
-  <h3>7.4 修改端口/域名</h3>
+  <h3>5.3 修改端口/域名</h3>
   <pre><code><span class="cm">// appsettings.json</span>
 <span class="str">"SipPort"</span>: <span class="num">5060</span>,           <span class="cm">// 改为其他端口，如 5080</span>
 <span class="str">"Realm"</span>: <span class="str">"asterisk"</span>,      <span class="cm">// 认证域，Zoiper 中 Domain 需与此一致</span>
 <span class="str">"RegisterExpiry"</span>: <span class="num">3600</span>   <span class="cm">// 注册过期时间(秒)</span></code></pre>
 
-  <h3>7.5 防火墙</h3>
+  <h3>5.4 防火墙</h3>
   <div class="note">
     <strong>Windows 防火墙：</strong>需要放行 UDP 5060 端口（SIP 信令）。
     如果使用 RTP 直连模式，两端还需能互相访问对方的 RTP 端口范围（通常 10000-20000 UDP）。
@@ -757,11 +662,11 @@ info: AsterTele.RegistrationStore[0]
   -Direction Inbound -Protocol UDP -LocalPort <span class="num">5060</span> -Action Allow</code></pre>
 </section>
 
-<!-- ======== 8. Zoiper 配置 ======== -->
+<!-- ======== 6. Zoiper 配置 ======== -->
 <section id="zoiper">
-  <h2><span class="num">8</span>Zoiper 配置</h2>
+  <h2><span class="num">6</span>Zoiper 配置</h2>
 
-  <h3>8.1 添加 SIP 账户</h3>
+  <h3>6.1 添加 SIP 账户</h3>
 
   <div class="step">
     <div class="step-num">1</div>
@@ -809,7 +714,7 @@ info: AsterTele.RegistrationStore[0]
     </tbody>
   </table>
 
-  <h3>8.2 验证注册</h3>
+  <h3>6.2 验证注册</h3>
   <p>Zoiper 点击 Register 后，AsterTele 控制台应显示：</p>
   <pre><code>info: 分机 8002 已注册: Contact=sip:8002@192.168.x.x:50778, Source=..., Expires=3600</code></pre>
 
@@ -820,7 +725,7 @@ info: AsterTele.RegistrationStore[0]
 活跃通话: 0
 ─────────────────────────</code></pre>
 
-  <h3>8.3 拨打电话</h3>
+  <h3>6.3 拨打电话</h3>
   <ol>
     <li>确保 8001 和 8002 都已在 Zoiper 注册成功</li>
     <li>在 8001 的 Zoiper 上拨号 <code>8002</code></li>
@@ -837,15 +742,15 @@ info: AsterTele.RegistrationStore[0]
   </div>
 </section>
 
-<!-- ======== 9. 扩展方向 ======== -->
+<!-- ======== 7. 扩展方向 ======== -->
 <section id="extend">
-  <h2><span class="num">9</span>扩展方向</h2>
+  <h2><span class="num">7</span>扩展方向</h2>
 
   <div class="card-grid">
     <div class="card">
-      <h4>RTP 中继 (双 socket)</h4>
-      <p>当前 RTP 中继尝试失败（单 socket 回声环路）。下一步采用双 socket 方案：分机侧和运营商侧各用一个独立 socket，彻底避免方向判断。或使用 SIPSorcery 原生 RTPChannel。</p>
-      <span class="badge badge-red">P0 待解决</span>
+      <h4>RTP 中继</h4>
+      <p>当前媒体直连。若需 NAT 穿透或录音，可在服务器上启动 RTP Session 做媒体中继，两端 RTP 发给服务器而非互发。</p>
+      <span class="badge badge-green">SIPSorcery 原生支持</span>
     </div>
     <div class="card">
       <h4>编解码协商</h4>
@@ -854,13 +759,13 @@ info: AsterTele.RegistrationStore[0]
     </div>
     <div class="card">
       <h4>IVR 语音菜单</h4>
-      <p>被叫端播放提示音、收集 DTMF 按键，实现类似 Asterisk dialplan 的交互式语音应答。IvrSession 骨架已就位，依赖 RTP 中继。</p>
+      <p>被叫端播放提示音、收集 DTMF 按键，实现类似 Asterisk dialplan 的交互式语音应答。</p>
       <span class="badge badge-orange">需 RTP 中继 + 音频播放</span>
     </div>
     <div class="card">
-      <h4>语音信箱</h4>
-      <p>外线拒接/忙时，播放语音提示并可选转语音信箱。VoiceMailSession 骨架已就位。</p>
-      <span class="badge badge-orange">需 RTP 中继 + 音频录制/播放</span>
+      <h4>IMS 对接</h4>
+      <p>中国电信 IMS 需要 SIP over TCP/TLS + 特定 Header。可增加 TCP 通道和 IMS 适配层。</p>
+      <span class="badge badge-orange">需 SIPTransport 加 TCP Channel</span>
     </div>
     <div class="card">
       <h4>Web 管理后台</h4>
@@ -875,10 +780,9 @@ info: AsterTele.RegistrationStore[0]
   </div>
 
   <div class="note">
-    <strong>当前定位：</strong>AsterTele 是一个支持 SIP Trunk 外呼的 SIP 软交换原型，
-    内部分机注册+通话核心场景已稳定，外线呼入/呼出信令已打通。
-    核心瓶颈：RTP 媒体流在 NAT 场景下不通，需要实现双 socket RTP 中继。
-    对于生产环境，建议评估 C# + FreeSWITCH 方案。
+    <strong>当前定位：</strong>AsterTele 是一个最小可用的 SIP 软交换原型，
+    已覆盖内部分机注册+通话的核心场景。对于生产环境，建议评估 C# + FreeSWITCH 方案，
+    让 FreeSWITCH 处理底层 SIP/RTP/编解码/NAT，C# 专注业务逻辑。
   </div>
 </section>
 
@@ -886,8 +790,8 @@ info: AsterTele.RegistrationStore[0]
 
 <!-- Footer -->
 <footer>
-  <p>AsterTele SIP SoftSwitch v1.1 &mdash; C# + SIPSorcery B2BUA Server</p>
-  <p>Generated on 2026-07-27</p>
+  <p>AsterTele SIP SoftSwitch v1.0 &mdash; C# + SIPSorcery B2BUA Server</p>
+  <p>Generated on 2026-07-24</p>
 </footer>
 
 </body>
