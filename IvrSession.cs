@@ -6,6 +6,7 @@ namespace AsterTele;
 /// IVR 会话
 /// 跟踪入站 IVR 交互状态 (提示音播放 → DTMF 收集 → 路由到分机)
 /// </summary>
+[Obsolete("IVR 会话暂未使用，待后续迭代实现 RTP 音频交互后启用")]
 public class IvrSession
 {
     public string SessionId { get; } = Guid.NewGuid().ToString("N")[..8];

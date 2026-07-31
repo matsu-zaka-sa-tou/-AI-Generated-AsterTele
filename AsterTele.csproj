@@ -8,7 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove=".gitattributes" />
+    <None Remove=".gitignore" />
+    <None Remove="AsterTele-BugFix-Journey 26724.html" />
+    <None Remove="AsterTele-BugFix-Journey.html" />
+    <None Remove="AsterTele-Refactoring-Report.html" />
+    <None Remove="AsterTele-Report 26724.html" />
+    <None Remove="AsterTele-Report.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="NAudio" Version="2.3.0" />
     <PackageReference Include="SIPSorcery" Version="10.0.12" />
   </ItemGroup>
 

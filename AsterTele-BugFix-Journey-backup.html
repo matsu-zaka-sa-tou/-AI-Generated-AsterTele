@@ -300,7 +300,6 @@
   .arch-box .hl-orange { color: var(--orange); }
   .arch-box .hl-purple { color: var(--purple); }
   .arch-box .hl-pink { color: var(--pink); }
-  .arch-box .hl-cyan { color: var(--cyan); }
 
   /* Summary cards */
   .summary-grid {
@@ -353,64 +352,55 @@
 <div class="hero">
   <div class="hero-icon">🔧</div>
   <h1>AsterTele Bug 修复历程</h1>
-  <div class="subtitle">从第一个崩溃到 RTP 媒体锚定 — C# SIP B2BUA 软交换机的调试全纪录</div>
+  <div class="subtitle">从第一个崩溃到最终稳定 — C# SIP B2BUA 软交换机的调试全纪录</div>
   <div class="meta">
     <span>📦 SIPSorcery 10.0.12</span>
     <span>🖥️ .NET 8 / C#</span>
-    <span>🎵 NAudio RTP Bridge</span>
-    <span>📅 2026-08-01</span>
+    <span>📱 Android Zoiper</span>
+    <span>📅 2026-07-27</span>
   </div>
 </div>
 
 <!-- ===== STATS ===== -->
-<div class="stats">
+  <div class="stats">
   <div class="stat-card">
-    <span class="num" style="color:var(--red)">12</span>
+    <span class="num" style="color:var(--red)">8</span>
     <span class="label">Bug 轮次</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--orange)">4</span>
+    <span class="num" style="color:var(--orange)">2</span>
     <span class="label">根因发现</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--green)">11</span>
+    <span class="num" style="color:var(--green)">7</span>
     <span class="label">核心修复</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--purple)">3</span>
-    <span class="label">里程碑</span>
-  </div>
-  <div class="stat-card">
-    <span class="num" style="color:var(--cyan)">~3200</span>
-    <span class="label">总代码行数</span>
+    <span class="num" style="color:var(--accent)">~2200</span>
+    <span class="label">最终代码行数</span>
   </div>
 </div>
 
 <!-- ===== ARCHITECTURE ===== -->
 <div class="section">
-  <div class="section-title"><span class="icon">🏗️</span> 项目架构速览（重构后）</div>
-  <div class="arch-box"><span class="hl-accent">┌───────────────────────────────────────────────────────────────────┐</span>
-<span class="hl-accent">│</span>                    <span class="hl-purple">AsterTele SIP B2BUA (v2)</span>                        <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>                                                                   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>  <span class="hl-green">DAG1000 8002</span>  <span class="hl-orange">◄──►</span>  <span class="hl-purple">[SipSoftSwitch]</span>  <span class="hl-orange">◄──►</span>  <span class="hl-green">中国电信 IMS</span>      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>   <span class="hl-green">同子网</span>         <span class="hl-orange">↕</span>   调度器 385行   <span class="hl-orange">↕</span>    <span class="hl-red">跨子网 (NAT)</span>      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>  192.168.40.100      <span class="hl-orange">↕</span>                    172.48.242.167      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>                       <span class="hl-orange">↕</span>                                         <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">┌─────── 核心模块 ───────┐</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> SipSoftSwitch.cs   <span class="hl-accent">385</span>  <span class="hl-purple">│</span>  <span class="hl-cyan">← 精简调度器</span>       <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> InviteHandler.cs   <span class="hl-accent">1298</span> <span class="hl-purple">│</span>  <span class="hl-cyan">← INVITE/ACK/转移</span>   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> ByeHandler.cs      <span class="hl-accent">420</span>  <span class="hl-purple">│</span>  <span class="hl-cyan">← BYE/转发/清理</span>   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> NaudioRtpBridge.cs <span class="hl-accent">628</span> <span class="hl-purple">│</span>  <span class="hl-cyan">← RTP 媒体锚定</span>    <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> CallManager.cs      <span class="hl-accent">~210</span> <span class="hl-purple">│</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> SipTrunkManager.cs  <span class="hl-accent">~400</span> <span class="hl-purple">│</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> DigestAuthenticator <span class="hl-accent">~120</span> <span class="hl-purple">│</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">│</span> RegistrationStore   <span class="hl-accent">~140</span> <span class="hl-purple">│</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>            <span class="hl-purple">└──────────────────────────┘</span>                      <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>                                                                   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>  <span class="hl-green">RTP SDP 策略:</span>                                                   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>    对运营商 → c=172.48.242.167 (路由器 DNAT → .102)              <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>    对本地分机 → c=192.168.40.102 (直连可达)                      <span class="hl-accent">│</span>
-<span class="hl-accent">└───────────────────────────────────────────────────────────────────┘</span></div>
+  <div class="section-title"><span class="icon">🏗️</span> 项目架构速览</div>
+  <div class="arch-box"><span class="hl-accent">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="hl-accent">│</span>                    <span class="hl-purple">AsterTele SIP B2BUA</span>                        <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                                                             <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">Zoiper 8002</span>  <span class="hl-orange">◄──►</span>  <span class="hl-purple">[SipSoftSwitch]</span>  <span class="hl-orange">◄──►</span>  <span class="hl-green">Zoiper 8003</span>   <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>   <span class="hl-green">同子网</span>         <span class="hl-orange">↕</span>   stateless     <span class="hl-orange">↕</span>    <span class="hl-red">跨子网 (NAT)</span>  <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  192.168.40.100      SIPTransport      192.168.40.1:29639  <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                       <span class="hl-orange">↕</span>                              <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">┌─────── 核心模块 ───────┐</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> SipSoftSwitch.cs  <span class="hl-accent">~980</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> CallManager.cs    <span class="hl-accent">~210</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> DigestAuthenticator <span class="hl-accent">~120</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">│</span> RegistrationStore <span class="hl-accent">~140</span> <span class="hl-purple">│</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>            <span class="hl-purple">└──────────────────────────┘</span>                 <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>                                                             <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">服务器 IP:</span> 192.168.40.102    <span class="hl-red">路由器:</span> 192.168.40.1      <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">同子网 Contact:</span> 192.168.40.102  <span class="hl-red">跨子网 Contact:</span> 192.168.40.1 <span class="hl-accent">│</span>
+<span class="hl-accent">└─────────────────────────────────────────────────────────────┘</span></div>
 </div>
 
 <!-- ===== BUG TIMELINE ===== -->
@@ -782,192 +772,19 @@ CSeq 递增 → re-INVITE, 调用 HandleTrunkReInvite</pre>
         <div class="solution-box">
           <div class="tag">处置：完整回滚</div>
           <p>删除了 <code>RtpRelaySession.cs</code> 和 <code>SdpModifier.cs</code>，<code>CallManager.cs</code> / <code>SipSoftSwitch.cs</code> / <code>SipOptions.cs</code> / <code>appsettings.json</code> / <code>Program.cs</code> 均恢复原状。编译验证通过，0 错误 0 警告。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- NEW PHASES: Refactoring + RTP Media Anchoring -->
-    <!-- ============================================ -->
-
-    <!-- Phase 12: 代码重构 -->
-    <div class="timeline-item milestone">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-milestone">里程碑</span>
-        <span class="timeline-title">代码重构 — 2178 行上帝类拆分，接口抽象 + 配置外置</span>
-      </div>
-      <div class="timeline-body">
-        <p>项目原始 <code>SipSoftSwitch.cs</code> 达 2178 行，承担 15+ 项职责，存在约 200 行复制粘贴代码、零接口抽象、CallSession 25+ 可变布尔属性、硬编码值等问题。</p>
-        <div class="solution-box">
-          <div class="tag">重构方案</div>
-          <p><strong>1. 消除重复代码</strong>：创建 <code>NetworkUtility</code> / <code>SdpUtility</code> / <code>SipUriUtility</code> / <code>DigestUtility</code> 四个工具类</p>
-          <p><strong>2. 接口抽象</strong>：创建 <code>ICallManager</code> / <code>IRegistrationStore</code> / <code>ITrunkManager</code> / <code>IRtpBridge</code> 接口</p>
-          <p><strong>3. Handler 职责拆分</strong>：</p>
-          <pre>SipSoftSwitch.cs  2178行 → 385行  (精简调度器)
-InviteHandler.cs  新增 ~1298行       (INVITE/ACK/CANCEL/呼叫转移)
-ByeHandler.cs     新增 420行          (BYE/转发/重传/会话清理)</pre>
-          <p><strong>4. 配置外置</strong>：appsettings.json 新增 <code>Runtime</code> 配置节（14 个运行时参数），<code>Rtp</code> 配置节（6 个 RTP 参数 + <code>MediaAddress</code>）</p>
-          <p><strong>5. 废弃标记</strong>：IvrSession.cs / VoiceMailSession.cs 标记 <code>[Obsolete]</code></p>
+          <p>路由器 RTP 端口转发也已删除。</p>
         </div>
         <div class="discovery-box">
-          <div class="tag">编译验证</div>
-          <p>重构后 0 错误 0 警告，功能效果等价。DI 注册使用 <code>IOptions&lt;SipOptions&gt;</code> 注入，InviteHandler 通过工厂模式创建。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 13: RTP 媒体锚定 -->
-    <div class="timeline-item milestone">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-milestone">里程碑</span>
-        <span class="timeline-title">RTP 媒体锚定 — 双 socket NAudio 方案，从纯信令升级为媒体 B2BUA</span>
-      </div>
-      <div class="timeline-body">
-        <p>为彻底解决「外呼拒接时内机听不到运营商忙音/语音提示」的核心问题，采用 NAudio 实现双 socket RTP 媒体锚定。</p>
-        <div class="discovery-box">
-          <div class="tag">架构设计</div>
-          <pre>分机侧                          运营商侧
-DAG1000                        中国电信 IMS
-   │                                │
-   │  RTP (G.711 A-law)             │  RTP (G.711 A-law)
-   ▼                                ▼
-┌──Caller Socket──┐    ┌──Callee Socket──┐
-│  UdpClient       │    │  UdpClient      │
-│  收/发主叫 RTP   │    │  收/发被叫 RTP  │
-└──────┬───────────┘    └──────┬──────────┘
-       │                       │
-       │   NAudio 解码          │
-       │   → short[]            │
-       │   → NAudio 编码        │
-       └───────────►────────────┘
-            双向转发 + 地址学习</pre>
-        </div>
-        <div class="solution-box">
-          <div class="tag">核心实现</div>
-          <p><strong>NaudioRtpBridge.cs</strong> (~628行)：双 UdpClient 独立 socket，地址学习（从首个 RTP 包学习实际源地址），NAudio ALaw 解码/编码转发，RTP 头部重写（序列号/时间戳/SSRC），每 5 秒转发统计日志。</p>
-          <p><strong>RtpPortAllocator.cs</strong>：端口范围分配器 (10000-60000)。</p>
-          <p><strong>SDP 锚定 5 处调用点</strong>（InviteHandler.cs）：</p>
-          <pre>1. 外呼 INVITE           → RewriteSdpToCallee  (172.48.242.167)
-2. 外呼 INVITE 401 重发   → RewriteSdpToCallee  (172.48.242.167)
-3. 入站 INVITE 构造本地   → RewriteSdpToCallee  (192.168.40.102)
-4. 183/180 转发给主叫     → RewriteSdpToCaller  (192.168.40.102)
-5. 200 OK 转发给主叫      → RewriteSdpToCaller  (192.168.40.102)</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 14: RTP Bug #8 — SDP 0.0.0.0 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #8</span>
-        <span class="timeline-title">RTP SDP 地址 0.0.0.0 — UdpClient 监听在 0.0.0.0 导致地址不可达</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p><code>NaudioRtpBridge</code> 中 <code>_ctx.LocalEP.Address</code> 返回 <code>0.0.0.0</code>（因为 UdpClient 监听在 0.0.0.0），导致 SDP 的 <code>c=</code> 字段填入 0.0.0.0，运营商 RTP 包无处可达。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复</div>
-          <p>在 <code>RtpOptions</code> 中新增 <code>MediaAddress</code> 配置项（默认值 <code>192.168.40.102</code>），SDP 锚定时优先使用 <code>MediaAddress</code>，不再从 socket 本地地址推断。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 14b: RTP Bug #9 — 地址学习方向反了 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #9</span>
-        <span class="timeline-title">RTP 地址学习方向反了 — 双方都发回给自己</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p><code>_callerRecvTask</code> 收到主叫的 RTP 包后，应学习主叫的实际地址存入 <code>_callerRemoteEP</code>，但代码误存为 <code>_calleeRemoteEP</code>。结果：</p>
-          <p>• 主叫包到达 → 学习地址存入 calleeRemoteEP → 把主叫包转发给运营商（正确）</p>
-          <p>• 运营商包到达 → 学习地址存入 callerRemoteEP → 把运营商包转发回主叫（正确）</p>
-          <p>• <strong>但下次主叫包到达时</strong>，转发目标取 callerRemoteEP（已存运营商地址）→ 主叫包发给运营商了 ✅</p>
-          <p>• <strong>下次运营商包到达时</strong>，转发目标取 calleeRemoteEP（已存主叫地址）→ 运营商包发给主叫了 ✅</p>
-          <p>看似「歪打正着」？实际端口号也不对——见 Bug #10。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复</div>
-          <p>修正地址学习方向：<code>_callerRecvTask</code> 学习 <code>_callerRemoteEP</code>，<code>_calleeRecvTask</code> 学习 <code>_calleeRemoteEP</code>。语义清晰，不再依赖巧合。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 14c: RTP Bug #10 — 地址学习端口错误 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #10</span>
-        <span class="timeline-title">RTP 地址学习端口错误 — NAT 同时改写 IP 和端口</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p>地址学习代码用 <code>getDest()?.Port</code>（SDP 声明的转发目标端口）拼上 <code>result.RemoteEndPoint.Address</code>（实际源 IP），构造出 <code>实际源IP:SDP声明端口</code> 的错误组合。</p>
-          <p>但路由器 NAT 同时改写 IP <strong>和</strong> 端口，实际源端口 ≠ SDP 声明端口。拼接出的端点地址在 NAT 后永远不正确。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复</div>
-          <p>直接使用 <code>result.RemoteEndPoint</code>（完整的实际源地址，包含 NAT 后的真实 IP 和端口），不再拼凑。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 14d: RTP Bug #11 — SocketException 995 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #11</span>
-        <span class="timeline-title">RTP 关闭时 SocketException 995 — Windows OperationAborted 未捕获</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p>RTP 会话结束后 Dispose 关闭 UdpClient，在 Windows 上触发 <code>SocketException</code> 错误码 995 (<code>SocketError.OperationAborted</code>)。</p>
-          <p>原代码只 catch <code>SocketError.Interrupted</code>（Linux），Windows 上的 995 未被捕获，导致异常冒泡到日志。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复</div>
-          <p>同时捕获 <code>SocketError.Interrupted</code> 和 <code>SocketError.OperationAborted</code>，两个值分别对应 Linux 和 Windows 的「socket 被关闭」信号。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 15: 短号 +86 修复 -->
-    <div class="timeline-item bug">
-      <div class="timeline-header">
-        <span class="timeline-phase phase-bug">Bug #12</span>
-        <span class="timeline-title">短号/服务号拨号失败 — 10000 被加 +86 前缀导致运营商拒绝</span>
-      </div>
-      <div class="timeline-body">
-        <div class="problem-box">
-          <div class="tag">问题</div>
-          <p>拨号规则 <code>StripPrefix=true</code>，拨 <code>910000</code> → 剥离前缀后得到 <code>10000</code>。</p>
-          <p>代码逻辑：<code>if (!outboundNumber.StartsWith("+") && outboundNumber.Length >= 5) outboundNumber = "+86" + outboundNumber;</code></p>
-          <p><code>10000</code> 长度 = 5，被加了 +86 前缀变成 <code>+8610000</code>。</p>
-          <p>运营商返回 <code>480 TemporarilyUnavailable</code>（+8610000 不是合法号码）。</p>
-        </div>
-        <div class="discovery-box">
-          <div class="tag">根因</div>
-          <p><code>Length >= 5</code> 的阈值太低，短号/服务号（110、119、120、10000、10086 等）长度在 3-6 位，也被误加 +86 前缀。</p>
-          <p>中国电信 IMS 网络中，手机号 11 位、固话带区号 7-12 位，都是 7 位以上。短号/服务号统一 ≤ 6 位。</p>
-        </div>
-        <div class="solution-box">
-          <div class="tag">修复</div>
-          <p>将阈值从 <code>Length >= 5</code> 改为 <code>Length >= 7</code>。InviteHandler.cs 两处（外呼 INVITE + re-INVITE）同步修改。</p>
-          <pre>修改前: if (Length >= 5) → 加 +86   // 10000 被误加
-修改后: if (Length >= 7) → 加 +86   // 10000 不再加, 手机号正常加</pre>
-          <p>编译验证通过，0 错误 0 警告。</p>
+          <div class="tag">后续方向</div>
+          <p><strong>方案 A：</strong>用两个独立的 RTP socket（分机侧一个、运营商侧一个），彻底避免方向判断</p>
+          <p><strong>方案 B：</strong>使用 SIPSorcery 自带的 <code>RTPChannel</code> / <code>RTPSession</code> 做 RTP 中继</p>
+          <p><strong>方案 C：</strong>轻量级 UDP 转发但用两个 socket 分别绑定不同端口</p>
         </div>
       </div>
     </div>
 
   </div>
 </div>
-
-<!-- ===== STATUS TABLE ===== -->
 <div class="section">
   <div class="section-title"><span class="icon">📊</span> 问题解决状态总览</div>
   <table>
@@ -1041,6 +858,12 @@ DAG1000                        中国电信 IMS
         <td><span class="badge badge-fixed">已修复</span></td>
       </tr>
       <tr>
+        <td>幽灵会话累积</td>
+        <td>新呼叫覆盖旧会话 key</td>
+        <td>RemoveSessionByExtension + 定时清理</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
         <td>外线 BYE 路由错误</td>
         <td>Request-URI 指向自身 / 缺少 Route 头</td>
         <td>缓存 Contact URI + Route Set 路由</td>
@@ -1055,50 +878,14 @@ DAG1000                        中国电信 IMS
       <tr>
         <td>RTP 中继回声环路</td>
         <td>单 socket 方向判断不可靠</td>
-        <td>回滚，改用双 socket NAudio 方案</td>
-        <td><span class="badge badge-fixed">已取代</span></td>
-      </tr>
-      <tr>
-        <td>RTP SDP 地址 0.0.0.0</td>
-        <td>UdpClient 监听 0.0.0.0，LocalEP.Address 不可用</td>
-        <td>新增 RtpOptions.MediaAddress 配置项</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>RTP 地址学习方向反了</td>
-        <td>callerRecvTask 误存 calleeRemoteEP</td>
-        <td>修正学习方向，语义对齐</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>RTP 地址学习端口错误</td>
-        <td>NAT 同时改写 IP 和端口，拼凑地址不正确</td>
-        <td>直接使用 result.RemoteEndPoint</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>SocketException 995</td>
-        <td>Windows OperationAborted 未捕获</td>
-        <td>同时 catch Interrupted + OperationAborted</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>短号 10000 拨号失败</td>
-        <td>Length>=5 阈值过低，服务号被误加 +86</td>
-        <td>阈值改为 Length>=7</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
+        <td>回滚，待重新设计双 socket 方案</td>
+        <td><span class="badge badge-unfixed">未修复</span></td>
       </tr>
       <tr>
         <td>外线拒接无提示音</td>
         <td>纯信令 B2BUA，RTP 不通</td>
-        <td>双 socket NAudio RTP 媒体锚定</td>
-        <td><span class="badge badge-fixed">已修复</span></td>
-      </tr>
-      <tr>
-        <td>RTP 首包丢包</td>
-        <td>地址学习前目标端点为 null，首包被丢弃</td>
-        <td>待优化（影响微小，~20ms 音频）</td>
-        <td><span class="badge badge-partial">低优先</span></td>
+        <td>依赖 RTP 中继方案</td>
+        <td><span class="badge badge-unfixed">未修复</span></td>
       </tr>
     </tbody>
   </table>
@@ -1122,28 +909,16 @@ DAG1000                        中国电信 IMS
       <p>新增 <code>SendAckForNon2xxToCallee()</code> 方法。在 BusyHere / Decline / 4xx / 5xx 响应到达时立即向被叫发 ACK，停止重传。</p>
     </div>
     <div class="summary-card">
-      <h4><span style="color:var(--green)">④</span> SIP Trunk 外呼</h4>
+      <h4><span style="color:var(--green)">⑤</span> SIP Trunk 外呼</h4>
       <p>新增 <code>SipTrunkManager.cs</code>，实现与运营商 IMS 的 REGISTER 注册（含 401 重认证）、外呼 INVITE、入站 INVITE 映射、呼叫转移（Busy/NoAnswer/Unconditional）、DTMF (SIP INFO) 透传。</p>
     </div>
     <div class="summary-card">
-      <h4><span style="color:var(--green)">⑤</span> re-INVITE + BYE 路由修复</h4>
+      <h4><span style="color:var(--green)">⑥</span> re-INVITE 处理 + BYE 路由修复</h4>
       <p>通过 CSeq 比较区分 INVITE 重传与 re-INVITE，缓存运营商/被叫的 Contact URI 用于 BYE 路由，按 RFC 3261 添加 Route Set 确保 BYE 沿原对话路径路由。</p>
     </div>
     <div class="summary-card">
-      <h4><span style="color:var(--purple)">⑥</span> 代码重构</h4>
-      <p>SipSoftSwitch 2178行→385行，拆分 InviteHandler/ByeHandler。接口抽象 ICallManager/IRegistrationStore/ITrunkManager/IRtpBridge。工具类 NetworkUtility/SdpUtility/SipUriUtility/DigestUtility 消除重复代码。Runtime+Rtp 配置外置。</p>
-    </div>
-    <div class="summary-card">
-      <h4><span style="color:var(--cyan)">⑦</span> RTP 媒体锚定 (NAudio)</h4>
-      <p>双 socket 方案：NaudioRtpBridge.cs (~628行)，独立 Caller/Callee UdpClient，地址学习，ALaw 解码/编码转发，RTP 头部重写，5 秒统计日志。SdpUtility 增强 SDP 锚定方法。5 处锚定调用点覆盖全部 SDP 交互。</p>
-    </div>
-    <div class="summary-card">
-      <h4><span style="color:var(--red)">⑧</span> RTP 中继（已回滚）</h4>
-      <p>单 socket 双向转发的方向判断不可靠导致回声环路，已完整回滚。核心问题由双 socket NAudio 方案取代。</p>
-    </div>
-    <div class="summary-card">
-      <h4><span style="color:var(--green)">⑨</span> 短号拨号修复</h4>
-      <p>外呼号码 +86 前缀阈值从 Length>=5 改为 Length>=7，避免 10000 等服务号被误加国际前缀。两处同步修改（外呼 INVITE + re-INVITE）。</p>
+      <h4><span style="color:var(--red)">⑦</span> RTP 中继（回滚）</h4>
+      <p>实现完整 RTP 中继方案（RtpRelaySession + SdpModifier），但单 socket 双向转发的方向判断不可靠导致回声环路，已完整回滚。核心问题（外线拒接无提示音）仍待解决。</p>
     </div>
   </div>
 </div>
@@ -1192,31 +967,13 @@ DAG1000                        中国电信 IMS
     <div class="timeline-item discovery">
       <div class="timeline-body">
         <p><strong>单个 UDP socket 做双向 RTP 转发是灾难性设计。</strong></p>
-        <p>NAT 环境下源地址不可靠，初始阶段方向判断极易误判，一旦方向反了就是回声环路。正确做法：每个方向使用独立 socket，彻底避免方向判断。</p>
+        <p>NAT 环境下源地址不可靠，初始阶段方向判断极易误判，一旦方向反了就是回声环路。正确做法：每个方向使用独立 socket，或利用 SIPSorcery 原生 RTPChannel。</p>
       </div>
     </div>
     <div class="timeline-item discovery">
       <div class="timeline-body">
-        <p><strong>RTP 地址学习不能拼凑——NAT 同时改写 IP 和端口。</strong></p>
-        <p>用「SDP 声明端口 + 实际源 IP」拼凑远端地址在 NAT 后必错。路由器 NAT 会同时重写 IP 和端口，必须直接使用 <code>RemoteEndPoint</code> 的完整地址。</p>
-      </div>
-    </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>UdpClient 监听 0.0.0.0 时，LocalEP.Address 就是 0.0.0.0，不能用于 SDP。</strong></p>
-        <p>必须显式配置 MediaAddress（实际可达的 IP 地址），用于 SDP 的 <code>c=</code> 字段。在 NAT 环境中这个地址可能是内网 IP（对本地分机）或外网 IP（对运营商）。</p>
-      </div>
-    </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>Windows 和 Linux 的 Socket 关闭行为不同——OperationAborted vs Interrupted。</strong></p>
-        <p>Windows Dispose UdpClient 触发 SocketError.OperationAborted (995)，Linux 触发 SocketError.Interrupted。跨平台代码必须同时处理两者。</p>
-      </div>
-    </div>
-    <div class="timeline-item discovery">
-      <div class="timeline-body">
-        <p><strong>短号/服务号的号码格式规则与常规号码不同。</strong></p>
-        <p>中国电信 IMS 中，短号/服务号（110、119、120、10000、10086 等，≤6位）不加国际前缀 +86；常规号码（手机号 11 位、固话 7-12 位，≥7位）才加 +86。号码格式化逻辑必须区分两者。</p>
+        <p><strong>纯信令 B2BUA 在 NAT 场景下存在天然缺陷——RTP 不通。</strong></p>
+        <p>外呼 INVITE 的 SDP 中 <code>c=</code> 地址被替换为 OutboundAddress（公网 IP），但 RTP 端口没有 NAT 映射，运营商发的 RTP 包被路由器丢弃。要让媒体流通过，必须实现 RTP 中继或配置端口转发。</p>
       </div>
     </div>
   </div>
@@ -1224,44 +981,31 @@ DAG1000                        中国电信 IMS
 
 <!-- ===== FILES ===== -->
 <div class="section">
-  <div class="section-title"><span class="icon">📁</span> 项目文件清单（重构后）</div>
+  <div class="section-title"><span class="icon">📁</span> 项目文件清单</div>
   <table>
     <thead>
       <tr><th>文件</th><th>行数</th><th>职责</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>SipSoftSwitch.cs</code></td><td>385</td><td>精简调度器：消息分发到 Handler</td></tr>
-      <tr><td><code>InviteHandler.cs</code></td><td>~1298</td><td>INVITE/ACK/CANCEL/呼叫转移/SDP 锚定</td></tr>
-      <tr><td><code>ByeHandler.cs</code></td><td>420</td><td>BYE 转发/重传/会话清理</td></tr>
-      <tr><td><code>NaudioRtpBridge.cs</code></td><td>~628</td><td>RTP 媒体锚定（双 socket NAudio）</td></tr>
-      <tr><td><code>RtpPortAllocator.cs</code></td><td>~60</td><td>RTP 端口范围分配器</td></tr>
-      <tr><td><code>CallManager.cs</code></td><td>~210</td><td>会话管理、去重、状态机、Contact 缓存</td></tr>
-      <tr><td><code>SipTrunkManager.cs</code></td><td>~400</td><td>SIP Trunk：REGISTER/外呼/传输层</td></tr>
+      <tr><td><code>SipSoftSwitch.cs</code></td><td>~2200</td><td>核心：SIP B2BUA 逻辑、智能路由、消息转发、双边 BYE、SIP Trunk 外呼/入站、re-INVITE</td></tr>
+      <tr><td><code>CallManager.cs</code></td><td>~250</td><td>会话管理、去重、双边挂断状态机、Contact URI 缓存</td></tr>
+      <tr><td><code>SipTrunkManager.cs</code></td><td>~400</td><td>SIP Trunk 管理：REGISTER 注册、外呼 INVITE、传输层</td></tr>
       <tr><td><code>DnsResolver.cs</code></td><td>~60</td><td>DNS SRV/NAPTR 解析工具</td></tr>
+      <tr><td><code>IvrSession.cs</code></td><td>~50</td><td>IVR 会话骨架（留接口，待实现）</td></tr>
+      <tr><td><code>VoiceMailSession.cs</code></td><td>~50</td><td>语音信箱骨架（留接口，待实现）</td></tr>
       <tr><td><code>DigestAuthenticator.cs</code></td><td>~120</td><td>Digest 401 认证（5 分钟 nonce 复用）</td></tr>
       <tr><td><code>RegistrationStore.cs</code></td><td>~140</td><td>分机注册存储与过期清理</td></tr>
-      <tr><td><code>NetworkUtility.cs</code></td><td>~80</td><td>网络工具：本地 IP/子网判断</td></tr>
-      <tr><td><code>SdpUtility.cs</code></td><td>~150</td><td>SDP 工具：地址替换/端口解析/RTP 端点解析</td></tr>
-      <tr><td><code>SipUriUtility.cs</code></td><td>~60</td><td>SIP URI 工具</td></tr>
-      <tr><td><code>DigestUtility.cs</code></td><td>~80</td><td>Digest 认证 MD5 计算</td></tr>
-      <tr><td><code>ICallManager.cs</code></td><td>~40</td><td>会话管理接口</td></tr>
-      <tr><td><code>IRegistrationStore.cs</code></td><td>~30</td><td>注册存储接口</td></tr>
-      <tr><td><code>ITrunkManager.cs</code></td><td>~30</td><td>Trunk 管理接口</td></tr>
-      <tr><td><code>IRtpBridge.cs</code></td><td>~40</td><td>RTP 桥接接口</td></tr>
-      <tr><td><code>SipOptions.cs</code></td><td>~306</td><td>配置模型（含 RtpOptions/MediaAddress/Runtime）</td></tr>
-      <tr><td><code>Program.cs</code></td><td>~150</td><td>入口 + DI 注册 + 文件日志 + 状态监控</td></tr>
-      <tr><td><code>appsettings.json</code></td><td>~126</td><td>配置：分机/Trunk/路由/Rtp/Runtime</td></tr>
-      <tr><td><code>IvrSession.cs</code></td><td>~50</td><td>IVR 骨架 [Obsolete]</td></tr>
-      <tr><td><code>VoiceMailSession.cs</code></td><td>~50</td><td>语音信箱骨架 [Obsolete]</td></tr>
+      <tr><td><code>SipOptions.cs</code></td><td>~70</td><td>配置模型（含 AdvertisedAddress、Trunk 配置）</td></tr>
+      <tr><td><code>Program.cs</code></td><td>~150</td><td>入口 + 文件日志 + 状态监控</td></tr>
+      <tr><td><code>appsettings.json</code></td><td>~40</td><td>配置：8001/8002/8003, 端口, NAT, Trunk</td></tr>
     </tbody>
   </table>
 </div>
 
 <!-- Footer -->
 <div class="footer">
-  AsterTele SIP SoftSwitch v2.0 — Bug 修复历程报告<br>
-  生成于 2026-08-01 · TeleAgent 自动生成<br>
-  <span style="color:var(--text2); font-size:0.85em;">备份: AsterTele-BugFix-Journey-backup.html (v1.1, 2026-07-27)</span>
+  AsterTele SIP SoftSwitch v1.1 — Bug 修复历程报告<br>
+  生成于 2026-07-27 · TeleAgent 自动生成
 </div>
 
 </div>

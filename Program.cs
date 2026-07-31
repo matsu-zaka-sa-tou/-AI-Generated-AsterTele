@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace AsterTele;
 
@@ -10,8 +11,8 @@ class Program
     static async Task Main(string[] args)
     {
         Console.WriteLine("╔══════════════════════════════════════════╗");
-        Console.WriteLine("║       AsterTele SIP SoftSwitch v1.0     ║");
-        Console.WriteLine("║       C# SIP B2BUA Server               ║");
+        Console.WriteLine("║       AsterTele SIP SoftSwitch v1.0      ║");
+        Console.WriteLine("║       C# SIP B2BUA Server                ║");
         Console.WriteLine("╚══════════════════════════════════════════╝");
         Console.WriteLine();
 
@@ -22,11 +23,49 @@ class Program
             })
             .ConfigureServices((context, services) =>
             {
+                // 配置绑定
                 services.Configure<SipOptions>(context.Configuration.GetSection(SipOptions.SectionName));
-                services.AddSingleton<RegistrationStore>();
-                services.AddSingleton<CallManager>();
-                services.AddSingleton<SipTrunkManager>();
-                services.AddSingleton<DigestAuthenticator>();
+
+                // 接口 → 实现 (Singleton)
+                services.AddSingleton<IRegistrationStore, RegistrationStore>();
+                services.AddSingleton<ICallManager, CallManager>();
+                services.AddSingleton<ITrunkManager, SipTrunkManager>();
+                // RTP 基础设施 (从 IOptions<SipOptions> 中提取 RtpOptions)
+                services.AddSingleton<RtpPortAllocator>(sp =>
+                {
+                    var rtpOpts = sp.GetRequiredService<IOptions<SipOptions>>().Value.Rtp;
+                    return new RtpPortAllocator(rtpOpts);
+                });
+                services.AddSingleton<IRtpBridge, NaudioRtpBridge>();
+
+                // DigestAuthenticator 走 DI (需 realm 参数)
+                services.AddSingleton<DigestAuthenticator>(sp =>
+                    new DigestAuthenticator(
+                        sp.GetRequiredService<IOptions<SipOptions>>().Value.Realm,
+                        sp.GetService<ILogger<DigestAuthenticator>>()));
+
+                // 共享 SIP 传输上下文
+                services.AddSingleton<SipTransportContext>();
+
+                // ByeHandler (先注册, 供 InviteHandler 工厂引用)
+                services.AddSingleton<ByeHandler>();
+
+                // InviteHandler 工厂: 需要 ByeHandler.SendByeToCallee 委托
+                services.AddSingleton<InviteHandler>(sp =>
+                {
+                    var byeHandler = sp.GetRequiredService<ByeHandler>();
+                    return new InviteHandler(
+                        sp.GetRequiredService<SipTransportContext>(),
+                        sp.GetRequiredService<ILogger<InviteHandler>>(),
+                        sp.GetRequiredService<IOptions<SipOptions>>(),
+                        sp.GetRequiredService<ICallManager>(),
+                        sp.GetRequiredService<IRegistrationStore>(),
+                        sp.GetRequiredService<ITrunkManager>(),
+                        sp.GetRequiredService<IRtpBridge>(),
+                        (session, reason) => byeHandler.SendByeToCallee(session, reason));
+                });
+
+                // 核心服务
                 services.AddSingleton<IHostedService, SipSoftSwitch>();
             })
             .ConfigureLogging((context, logging) =>
@@ -56,9 +95,9 @@ class Program
                 await Task.Delay(15000, cts.Token);
                 try
                 {
-                    var store = host.Services.GetRequiredService<RegistrationStore>();
-                    var callMgr = host.Services.GetRequiredService<CallManager>();
-                    var trunkMgr = host.Services.GetRequiredService<SipTrunkManager>();
+                    var store = host.Services.GetRequiredService<IRegistrationStore>();
+                    var callMgr = host.Services.GetRequiredService<ICallManager>();
+                    var trunkMgr = host.Services.GetRequiredService<ITrunkManager>();
 
                     var registrations = store.GetAllRegistrations().ToList();
                     var sessions = callMgr.GetActiveSessions().ToList();

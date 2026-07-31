@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SIPSorcery.SIP;
+using SIPSorcery.SIP.App;
 
 namespace AsterTele;
 
@@ -44,7 +45,7 @@ public class RegisteredExtension
 /// 分机注册存储
 /// 管理所有已注册分机的 Contact 信息
 /// </summary>
-public class RegistrationStore
+public class RegistrationStore : IRegistrationStore
 {
     private readonly ConcurrentDictionary<string, RegisteredExtension> _registrations = new();
     private readonly Dictionary<string, ExtensionConfig> _extensionConfigs = new();

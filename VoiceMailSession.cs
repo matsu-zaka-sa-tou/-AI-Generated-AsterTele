@@ -10,6 +10,7 @@ namespace AsterTele;
 /// 
 /// 当前骨架: 仅记录日志, 不执行 RTP 操作
 /// </summary>
+[Obsolete("语音信箱暂未使用，待后续迭代实现 RTP 录音后启用")]
 public class VoiceMailSession
 {
     public string SessionId { get; } = Guid.NewGuid().ToString("N")[..8];

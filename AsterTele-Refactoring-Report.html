@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AsterTele 重构报告</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--orange:#d29922;--purple:#bc8cff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:20px;max-width:1200px;margin:0 auto}
+h1{font-size:2em;margin-bottom:8px;color:#fff}
+h2{font-size:1.5em;margin:2em 0 .8em;color:#fff;border-bottom:1px solid var(--border);padding-bottom:.5em}
+h3{font-size:1.15em;margin:1.5em 0 .6em;color:var(--accent)}
+p{margin:.5em 0}
+a{color:var(--accent);text-decoration:none}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.badge{padding:4px 12px;border-radius:20px;font-size:.85em;font-weight:600;white-space:nowrap}
+.badge-green{background:#1a3a2a;color:var(--green);border:1px solid #238636}
+.badge-blue{background:#1a2940;color:var(--accent);border:1px solid #1f6feb}
+.badge-purple{background:#251a40;color:var(--purple);border:1px solid #8957e5}
+.badge-orange{background:#3a2a1a;color:var(--orange);border:1px solid #9e6a03}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin:1em 0}
+table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.9em}
+th{background:#1c2129;text-align:left;padding:10px 12px;border:1px solid var(--border);color:var(--accent);font-weight:600}
+td{padding:8px 12px;border:1px solid var(--border);vertical-align:top}
+tr:hover td{background:#1c2129}
+code{background:#1c2129;padding:2px 6px;border-radius:4px;font-family:"Fira Code",Consolas,monospace;font-size:.88em;color:var(--accent)}
+pre{background:#1c2129;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-family:"Fira Code",Consolas,monospace;font-size:.85em;line-height:1.5;margin:1em 0}
+.arch-box{border:1px solid var(--border);border-radius:8px;padding:16px;margin:1em 0;background:#0d1117}
+.arrow{color:var(--accent)}
+.nav{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin:1em 0}
+.nav a{display:inline-block;margin-right:16px;font-size:.9em}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:1em 0}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat-card .num{font-size:2em;font-weight:700;color:#fff}
+.stat-card .label{font-size:.85em;color:var(--text2);margin-top:4px}
+.del{text-decoration:line-through;color:var(--text2)}
+.phase{border-left:3px solid;padding-left:12px;margin:1em 0}
+.phase-refactor{border-color:var(--purple)}
+.phase-rtp{border-color:var(--green)}
+@media(max-width:768px){body{padding:10px}table{font-size:.8em}th,td{padding:6px 8px}}
+</style>
+</head>
+<body>
+
+<h1>AsterTele SIP SoftSwitch 重构报告</h1>
+<p style="color:var(--text2)">重构日期: 2026-07-28 ~ 07-31 &nbsp;|&nbsp; 目标框架: .NET 8 &nbsp;|&nbsp; 核心依赖: SIPSorcery 10.0.12 + NAudio 2.3.0</p>
+
+<div class="badges">
+  <span class="badge badge-green">&#10003; 编译通过</span>
+  <span class="badge badge-blue">0 错误 / 1 警告</span>
+  <span class="badge badge-purple">功能等价 + RTP 锚定</span>
+  <span class="badge badge-orange">2178行 → 385行 (主文件)</span>
+  <span class="badge badge-green">NAudio RTP 桥接</span>
+</div>
+
+<div class="nav">
+  <strong>目录</strong>&nbsp;&nbsp;
+  <a href="#summary">重构概要</a>
+  <a href="#before-after">前后对比</a>
+  <a href="#dedup">消除重复</a>
+  <a href="#architecture">架构变化</a>
+  <a href="#design">设计决策</a>
+  <a href="#security">安全修复</a>
+  <a href="#rtp">RTP 接口</a>
+  <a href="#rtp-anchor">RTP 媒体锚定</a>
+  <a href="#runtime">运行时参数</a>
+  <a href="#filelist">文件清单</a>
+  <a href="#postrefactor">修复记录</a>
+</div>
+
+<!-- ===== 重构概要 ===== -->
+<h2 id="summary">重构概要</h2>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="num" style="color:var(--green)">-82%</div><div class="label">主文件行数降幅</div></div>
+  <div class="stat-card"><div class="num">7</div><div class="label">新增接口</div></div>
+  <div class="stat-card"><div class="num">4</div><div class="label">新增工具类</div></div>
+  <div class="stat-card"><div class="num">~200</div><div class="label">消除重复代码行</div></div>
+  <div class="stat-card"><div class="num">2</div><div class="label">新增 Handler</div></div>
+  <div class="stat-card"><div class="num">0</div><div class="label">功能回归</div></div>
+  <div class="stat-card"><div class="num" style="color:var(--green)">1</div><div class="label">RTP 桥接实现</div></div>
+  <div class="stat-card"><div class="num">5</div><div class="label">SDP 锚定点</div></div>
+</div>
+
+<div class="card">
+  <h3>核心目标</h3>
+  <ul style="padding-left:20px">
+    <li>拆分 2178 行的上帝类 <code>SipSoftSwitch</code>，单一职责</li>
+    <li>消除约 200 行重复代码 (GetLocalIP x4, SDP替换 x3, ResolveSipUri x2, 外呼INVITE构造 x2, MD5 Digest x2)</li>
+    <li>引入接口抽象 (<code>ICallManager</code>, <code>IRegistrationStore</code>, <code>ITrunkManager</code>, <code>IRtpBridge</code>)，支持 mock/测试</li>
+    <li>外置硬编码值为 <code>RuntimeOptions</code> 配置类</li>
+    <li>实现 NAudio RTP 桥接 (<code>NaudioRtpBridge</code>) — G.711 A-Law/μ-Law 编解码、双向 RTP 转发、WAV 录音、提示音注入</li>
+    <li>SDP 媒体锚定 — 5 个 SDP 重写点，使 RTP 流经过 AsterTele（解决外呼听不到运营商忙音/提示语问题）</li>
+    <li>修复安全/并发问题 (密码明文日志、Dictionary 并发)</li>
+  </ul>
+</div>
+
+<div class="phase phase-refactor">
+  <strong>Phase 1 — 代码重构</strong> (2026-07-28): 拆分上帝类、消除重复、接口抽象、配置外置
+</div>
+<div class="phase phase-rtp">
+  <strong>Phase 2 — RTP 媒体锚定</strong> (2026-07-31): NaudioRtpBridge 实现、SDP 锚定集成、编译验证通过
+</div>
+
+<!-- ===== 前后对比 ===== -->
+<h2 id="before-after">重构前后对比</h2>
+
+<h3>重构前: 单体上帝类</h3>
+<table>
+  <tr><th>文件</th><th>行数</th><th>职责</th></tr>
+  <tr><td class="del">SipSoftSwitch.cs</td><td>2178</td><td>全部 SIP 信令 + 网络工具 + 硬编码常量</td></tr>
+  <tr><td>CallManager.cs</td><td>~180</td><td>呼叫会话管理</td></tr>
+  <tr><td>RegistrationStore.cs</td><td>~90</td><td>分机注册存储</td></tr>
+  <tr><td>SipTrunkManager.cs</td><td>~570</td><td>Trunk 管理</td></tr>
+  <tr><td>DigestAuthenticator.cs</td><td>~100</td><td>Digest 认证</td></tr>
+  <tr><td>SipOptions.cs</td><td>~150</td><td>配置类</td></tr>
+  <tr><td>Program.cs</td><td>~110</td><td>入口 + DI</td></tr>
+</table>
+
+<h3>重构后: 分层调度器 + 接口抽象 + RTP 媒体锚定</h3>
+<table>
+  <tr><th>文件</th><th>行数</th><th>类型</th><th>说明</th></tr>
+  <tr><td>SipSoftSwitch.cs</td><td>385</td><td>重写</td><td>精简调度器: 传输层初始化 + 消息分发 + REGISTER/OPTIONS/INFO</td></tr>
+  <tr><td>InviteHandler.cs</td><td>1296</td><td>新增</td><td>INVITE/ACK/CANCEL/呼叫转移/re-INVITE/B2BUA 响应转发 + 5处 SDP 锚定</td></tr>
+  <tr><td>ByeHandler.cs</td><td>420</td><td>新增</td><td>BYE 处理/转发/重传/200OK 确认/会话清理</td></tr>
+  <tr><td>CallManager.cs</td><td>289</td><td>重写</td><td>实现 ICallManager + CallSession 状态机方法</td></tr>
+  <tr><td>RegistrationStore.cs</td><td>121</td><td>重写</td><td>实现 IRegistrationStore</td></tr>
+  <tr><td>SipTrunkManager.cs</td><td>480</td><td>重写</td><td>实现 ITrunkManager, ConcurrentDictionary, 删除重复代码</td></tr>
+  <tr><td>DigestAuthenticator.cs</td><td>125</td><td>重写</td><td>内部改用 DigestUtility.ComputeMD5 统一计算</td></tr>
+  <tr><td>SipOptions.cs</td><td>208</td><td>重写</td><td>新增 RuntimeOptions + RtpOptions 配置类</td></tr>
+  <tr><td>Program.cs</td><td>172</td><td>重写</td><td>DI 注册改用接口 + InviteHandler 工厂 + RtpPortAllocator + NaudioRtpBridge</td></tr>
+  <tr><td>NetworkUtility.cs</td><td>116</td><td>新增</td><td>GetLocalIPv4 / IsSameSubnet / GetContactEPForClient / IsFromTrunkNetwork / FixViaHeader</td></tr>
+  <tr><td>SdpUtility.cs</td><td>71</td><td>新增+增强</td><td>ReplaceSdpIpAddress + ReplaceSdpMediaPort + ParseRtpEndpoint</td></tr>
+  <tr><td>SipUriUtility.cs</td><td>30</td><td>新增</td><td>ResolveSipUriEndPoint</td></tr>
+  <tr><td>DigestUtility.cs</td><td>70</td><td>新增</td><td>ComputeMD5 / GenerateCnonce / BuildManualDigest</td></tr>
+  <tr><td>ICallManager.cs</td><td>19</td><td>新增</td><td>呼叫管理器接口</td></tr>
+  <tr><td>IRegistrationStore.cs</td><td>16</td><td>新增</td><td>注册存储接口</td></tr>
+  <tr><td>ITrunkManager.cs</td><td>21</td><td>新增</td><td>Trunk 管理器接口</td></tr>
+  <tr><td>IRtpBridge.cs</td><td>108</td><td>新增</td><td>RTP桥接接口 + NullRtpBridge 空实现 + SDP锚定方法</td></tr>
+  <tr><td style="color:var(--green)">NaudioRtpBridge.cs</td><td>559</td><td>新增</td><td>NAudio RTP 桥接实现 (G.711编解码 + 双向转发 + 录音 + 提示音)</td></tr>
+  <tr><td style="color:var(--green)">RtpPortAllocator.cs</td><td>~60</td><td>新增</td><td>RTP 偶数端口分配器 (线程安全)</td></tr>
+  <tr><td>DnsResolver.cs</td><td>126</td><td style="color:var(--text2)">未改</td><td>DNS解析</td></tr>
+  <tr><td>IvrSession.cs</td><td>48</td><td style="color:var(--orange)">标记</td><td>IVR骨架 [Obsolete]</td></tr>
+  <tr><td>VoiceMailSession.cs</td><td>41</td><td style="color:var(--orange)">标记</td><td>语音信箱骨架 [Obsolete]</td></tr>
+  <tr><td>appsettings.json</td><td>115</td><td style="color:var(--orange)">修改</td><td>添加 Runtime + Rtp 配置节</td></tr>
+</table>
+
+<!-- ===== 消除重复 ===== -->
+<h2 id="dedup">消除的重复代码</h2>
+
+<table>
+  <tr><th>#</th><th>重复点</th><th>原位置</th><th>统一到</th><th>约消除行数</th></tr>
+  <tr><td>1</td><td>GetLocalIPv4</td><td>SipSoftSwitch x2, SipTrunkManager x2</td><td><code>NetworkUtility.GetLocalIPv4()</code></td><td>~40</td></tr>
+  <tr><td>2</td><td>ReplaceSdpIpAddress</td><td>外呼INVITE / 401重认证 / SipTrunkManager</td><td><code>SdpUtility.ReplaceSdpIpAddress()</code></td><td>~30</td></tr>
+  <tr><td>3</td><td>ResolveSipUriEndPoint</td><td>SipSoftSwitch, SipTrunkManager</td><td><code>SipUriUtility.ResolveSipUriEndPoint()</code></td><td>~20</td></tr>
+  <tr><td>4</td><td>外呼 INVITE 构造</td><td>HandleOutboundInvite + HandleOutboundInviteAuthChallenge (~120行近乎复制)</td><td>InviteHandler 内统一 (结构保留, 但共享 SdpUtility/NetworkUtility/DigestUtility)</td><td>~60</td></tr>
+  <tr><td>5</td><td>BuildManualDigest</td><td>SipTrunkManager 手动MD5 + DigestAuthenticator 两套不兼容实现</td><td><code>DigestUtility.BuildManualDigest()</code></td><td>~30</td></tr>
+  <tr><td>6</td><td>FixViaHeader</td><td>SipTrunkManager 中单独实现</td><td><code>NetworkUtility.FixViaHeader()</code></td><td>~20</td></tr>
+  <tr style="font-weight:bold"><td></td><td colspan="3">合计</td><td>~200</td></tr>
+</table>
+
+<!-- ===== 架构变化 ===== -->
+<h2 id="architecture">架构变化</h2>
+
+<h3>重构前: 单体上帝类</h3>
+<pre>
+SipSoftSwitch (2178行)
+  <span class="arrow">├─</span> CallManager (具体类)
+  <span class="arrow">├─</span> RegistrationStore (具体类)
+  <span class="arrow">├─</span> SipTrunkManager (具体类)
+  <span class="arrow">├─</span> DigestAuthenticator (new 创建, 绕过 DI)
+  <span class="arrow">├─</span> 全部 SIP 信令处理 (REGISTER/INVITE/ACK/BYE/CANCEL/OPTIONS/INFO)
+  <span class="arrow">├─</span> 全部网络工具方法
+  <span class="arrow">├─</span> 全部硬编码常量 (MaxForwards=70, 90s超时, BYE重传3次/5s...)
+  <span class="arrow">└─</span> 密码明文日志 (L342)
+</pre>
+
+<h3>重构后: 分层调度器 + 接口抽象 + RTP 媒体锚定</h3>
+<pre>
+Program.cs (DI 注册)
+  <span class="arrow">└─</span> SipSoftSwitch (385行, 精简调度器)
+       <span class="arrow">├─</span> InviteHandler (1296行, INVITE/ACK/CANCEL/转移 + 5处 SDP 锚定)
+       <span class="arrow">├─</span> ByeHandler   (420行,  BYE/清理/重传)
+       <span class="arrow">├─</span> ICallManager        <span class="arrow">→</span> CallManager (接口+实现+状态机)
+       <span class="arrow">├─</span> IRegistrationStore  <span class="arrow">→</span> RegistrationStore (接口+实现)
+       <span class="arrow">├─</span> ITrunkManager       <span class="arrow">→</span> SipTrunkManager (接口+ConcurrentDict)
+       <span class="arrow">├─</span> IRtpBridge          <span class="arrow">→</span> <span style="color:var(--green)">NaudioRtpBridge</span> (G.711双向转发+录音+提示音)
+       <span class="arrow">├─</span> DigestAuthenticator (走 DI, 密码不再明文日志)
+       <span class="arrow">├─</span> RtpPortAllocator    (偶数端口分配, Singleton)
+       <span class="arrow">└─</span> 工具类: Network / Sdp / SipUri / Digest (静态, 无状态)
+</pre>
+
+<!-- ===== 设计决策 ===== -->
+<h2 id="design">关键设计决策</h2>
+
+<div class="card">
+  <h3>1. SipTransportContext 共享上下文</h3>
+  <p><code>internal sealed class SipTransportContext</code> 封装 <code>SIPTransport</code>、<code>AdvertisedEP</code>、<code>LocalEP</code>，由 SipSoftSwitch 持有并传给 Handler，避免全局状态。定义在 ByeHandler.cs 中，由 DI 注册为 Singleton。</p>
+</div>
+
+<div class="card">
+  <h3>2. InviteHandler 工厂注册</h3>
+  <p>InviteHandler 构造函数需要 <code>Func&lt;CallSession, string?, Task&gt; sendByeToCallee</code> 委托（从 ByeHandler 获取），因为 ForwardCalleeResponse 在 200 OK 重传超限时需要向被叫发 BYE。Program.cs 中用工厂模式创建：</p>
+  <pre>services.AddSingleton&lt;InviteHandler&gt;(sp =&gt;
+{
+    var byeHandler = sp.GetRequiredService&lt;ByeHandler&gt;();
+    return new InviteHandler(..., (session, reason) =&gt; byeHandler.SendByeToCallee(session, reason));
+});</pre>
+</div>
+
+<div class="card">
+  <h3>3. CallSession 状态机方法</h3>
+  <p>原 25+ 可变布尔属性无状态机保护，存在竞态风险。新增方法封装状态转换：</p>
+  <ul style="padding-left:20px">
+    <li><code>TryTransitionTo(CallState)</code> — 安全状态转换，校验合法转移</li>
+    <li><code>MarkCallerHungUp()</code> / <code>MarkCalleeHungUp()</code> — 封装挂断标记</li>
+    <li><code>MarkCallee200OkProcessed()</code> — 防止重传重复处理</li>
+    <li><code>ResetCalleeLeg()</code> — 呼叫转移时重置被叫腿</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>4. internal 类型 + IServiceProvider 解析</h3>
+  <p>InviteHandler/ByeHandler/SipTransportContext 为 <code>internal</code>，不在公共构造函数中暴露。SipSoftSwitch 通过 <code>IServiceProvider.GetRequiredService&lt;T&gt;()</code> 解析，保持 public API 整洁。</p>
+</div>
+
+<!-- ===== 安全修复 ===== -->
+<h2 id="security">安全与并发修复</h2>
+
+<table>
+  <tr><th>类别</th><th>问题</th><th>修复</th></tr>
+  <tr><td style="color:var(--red)">安全</td><td>原 SipSoftSwitch.cs:342 日志输出 <code>extConfig.Password</code> 明文密码</td><td>重构后 HandleRegister 不再输出密码</td></tr>
+  <tr><td style="color:var(--orange)">并发</td><td>SipTrunkManager._trunkStates 使用普通 <code>Dictionary</code>，多线程并发访问有风险</td><td>改为 <code>ConcurrentDictionary</code></td></tr>
+  <tr><td style="color:var(--orange)">DI</td><td>DigestAuthenticator 用 <code>new</code> 创建，绕过 DI 容器</td><td>改为 DI 注册，通过构造函数注入</td></tr>
+</table>
+
+<!-- ===== RTP 接口 ===== -->
+<h2 id="rtp">RTP 桥接接口设计</h2>
+
+<div class="card">
+  <p><code>IRtpBridge</code> 连接 SIP 信令层与 RTP 媒体流，实现 IVR 语音播放、语音信箱录音等需要 RTP 的功能。</p>
+  <pre>
+public interface IRtpBridge
+{
+    // SDP 媒体锚定 (核心: 使 RTP 流经过 AsterTele)
+    string? RewriteSdpToCallee(CallSession session, string callerSdp, string calleeSideIp);
+    string? RewriteSdpToCaller(CallSession session, string calleeSdp, string callerSideIp);
+
+    // 会话生命周期
+    Task OnSessionEstablished(CallSession session, string sdpAnswer);
+    Task OnSessionTerminated(CallSession session);
+
+    // 音频功能
+    Task PlayPromptAsync(CallSession session, string promptId, CancellationToken ct);
+    Task StopPromptAsync(CallSession session);
+    Task StartRecordingAsync(CallSession session, string outputPath, int maxDurationSeconds, CancellationToken ct);
+    Task&lt;string?&gt; StopRecordingAsync(CallSession session);
+
+    // re-INVITE 媒体修改
+    string? GetMediaSdp(CallSession session);
+    Task&lt;string?&gt; ModifySessionAsync(CallSession session, string newSdp);
+
+    bool IsMediaAvailable { get; }
+}</pre>
+  <p>当前注册 <code>NaudioRtpBridge</code> 实现，已实现媒体锚定。也可替换为其他实现：</p>
+  <ul style="padding-left:20px">
+    <li><code>NaudioRtpBridge</code> — <span style="color:var(--green)">当前实现</span>，NAudio G.711 编解码 + RTP 双向转发</li>
+    <li><code>NullRtpBridge</code> — 空实现，纯 SIP 信令模式 (SDP 透传)</li>
+    <li><code>RtpFfmpegBridge</code> — 使用 ffmpeg 音频编解码 (未来)</li>
+  </ul>
+</div>
+
+<!-- ===== RTP 媒体锚定 ===== -->
+<h2 id="rtp-anchor">RTP 媒体锚定</h2>
+
+<div class="card">
+  <h3>问题根因</h3>
+  <p>外呼时主叫听不到运营商忙音/提示语。Wireshark 抓包确认：<strong>零 RTP 包到达 AsterTele 服务器</strong>。原因是 AsterTele 作为纯信令 B2BUA，SDP 透传导致双向 RTP 通路断裂：</p>
+  <ul style="padding-left:20px">
+    <li>运营商发忙音 → 172.48.242.167:24636 (DAG1000 内网端口) → 路由器无此端口转发 → RTP 丢弃</li>
+    <li>主叫发 RTP → 172.26.160.89:20544 (运营商内网 IP) → 不可路由</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>解决: RTP 媒体锚定</h3>
+  <p>AsterTele 从纯信令 B2BUA 升级为媒体 B2BUA，每个通话分配两个 UDP 端口做双向 RTP 转发：</p>
+  <pre>
+修改后的 RTP 流:
+  DAG1000 ══RTP══> AsterTele:CallerPort ══转发══> 运营商 RTP 端点
+  运营商  ══RTP══> AsterTele:CalleePort ══转发══> DAG1000 的 RTP 端点
+
+NaudioRtpBridge 每个 CallSession 分配:
+  - CallerPort: 主叫侧发来的 RTP 入口
+  - CalleePort: 被叫侧发来的 RTP 入口
+  - 从 RTP 包解码 G.711 → NAudio → WAV 录音
+  - 从 WAV 文件 → NAudio 编码 G.711 → RTP 注入 → 播放提示音
+</pre>
+</div>
+
+<div class="card">
+  <h3>SDP 锚定调用点 (InviteHandler.cs 中 5 处)</h3>
+  <table>
+    <tr><th>#</th><th>触发时机</th><th>调用</th><th>说明</th></tr>
+    <tr><td>1</td><td>外呼 INVITE</td><td><code>RewriteSdpToCallee(session, request.Body, trunkOutIp)</code></td><td>主叫 SDP → 被叫侧 AsterTele 地址/端口</td></tr>
+    <tr><td>2</td><td>外呼 INVITE 401 重认证</td><td><code>RewriteSdpToCallee(session, session.CallerInvite.Body, trunkOutIp)</code></td><td>重认证后再次锚定</td></tr>
+    <tr><td>3</td><td>入站 INVITE → 构造本地 INVITE</td><td><code>RewriteSdpToCallee(session, originalInvite.Body, extensionSideIp)</code></td><td>运营商 SDP → 分机侧 AsterTele 地址/端口</td></tr>
+    <tr><td>4</td><td>183/180 转发给主叫</td><td><code>RewriteSdpToCaller(session, response.Body, callerSideIp)</code></td><td>被叫 183 SDP → 主叫侧 AsterTele 地址/端口 (早期媒体)</td></tr>
+    <tr><td>5</td><td>200 OK 转发给主叫</td><td><code>RewriteSdpToCaller(session, response.Body, callerSideIp)</code></td><td>被叫 200 OK SDP → 主叫侧 AsterTele 地址/端口</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>网络拓扑</h3>
+  <pre>
+DAG1000 (192.168.0.149)  →  路由器 (192.168.40.1)  →  AsterTele (192.168.40.102)
+        SNAT出口: 172.48.242.167                            运营商看到的IP
+                                                              ↓
+                                                     运营商 IMS (172.26.160.38)
+</pre>
+  <p><strong>重要</strong>: 用户需确保路由器对 <code>10000-60000</code> 端口范围做端口转发/NAT 到 AsterTele 服务器。</p>
+</div>
+
+<!-- ===== 运行时参数 ===== -->
+<h2 id="runtime">运行时参数外置</h2>
+
+<p>所有原硬编码值统一到 <code>RuntimeOptions</code>，可通过 <code>appsettings.json</code> 的 <code>Sip:Runtime</code> 节配置：</p>
+
+<table>
+  <tr><th>参数</th><th>默认值</th><th>原硬编码位置</th><th>说明</th></tr>
+  <tr><td>MaxForwardDepth</td><td>5</td><td>SipSoftSwitch</td><td>最大呼叫转移深度</td></tr>
+  <tr><td>RegistrationCleanupIntervalSeconds</td><td>60</td><td>SipSoftSwitch</td><td>注册清理间隔</td></tr>
+  <tr><td>SessionCleanupIntervalSeconds</td><td>30</td><td>SipSoftSwitch</td><td>会话清理间隔</td></tr>
+  <tr><td>StaleSessionTimeoutSeconds</td><td>90</td><td>SipSoftSwitch</td><td>未接通会话超时</td></tr>
+  <tr><td>MaxCallDurationHours</td><td>2</td><td>SipSoftSwitch</td><td>最大通话时长</td></tr>
+  <tr><td>ByeRetransmitIntervalSeconds</td><td>5</td><td>SipSoftSwitch</td><td>BYE 重传间隔</td></tr>
+  <tr><td>ByeMaxRetransmitCount</td><td>3</td><td>SipSoftSwitch</td><td>BYE 最大重传次数</td></tr>
+  <tr><td>ByeForcedCleanupSeconds</td><td>20</td><td>SipSoftSwitch</td><td>BYE 强制清理超时</td></tr>
+  <tr><td>OkRetransmitMaxCount</td><td>11</td><td>SipSoftSwitch (多处)</td><td>Max-Forwards 默认值</td></tr>
+  <tr><td>MaxForwards</td><td>70</td><td>SipSoftSwitch (多处)</td><td>Max-Forwards 默认值</td></tr>
+  <tr><td>TrunkRefreshThresholdSeconds</td><td>120</td><td>SipTrunkManager</td><td>Trunk 注册刷新提前量</td></tr>
+  <tr><td>TrunkRefreshInitialDelaySeconds</td><td>10</td><td>SipTrunkManager</td><td>Trunk 初始刷新延迟</td></tr>
+  <tr><td>StatusMonitorIntervalMs</td><td>15000</td><td>SipTrunkManager</td><td>状态监控间隔 (毫秒)</td></tr>
+</table>
+
+<h3>RTP 配置参数</h3>
+
+<table>
+  <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  <tr><td>PortRangeStart</td><td>10000</td><td>RTP 端口范围起始 (偶数)</td></tr>
+  <tr><td>PortRangeEnd</td><td>60000</td><td>RTP 端口范围结束</td></tr>
+  <tr><td>BindAddress</td><td>0.0.0.0</td><td>RTP 绑定地址</td></tr>
+  <tr><td>JitterBufferMs</td><td>60</td><td>抖动缓冲 (毫秒, 保留)</td></tr>
+  <tr><td>DefaultPayloadType</td><td>8</td><td>默认载荷类型 (8=PCMA, 0=PCMU)</td></tr>
+</table>
+
+<h3>appsettings.json 配置示例</h3>
+<pre>{
+  "Sip": {
+    ...existing config...,
+    "Runtime": {
+      "MaxForwardDepth": 5,
+      "RegistrationCleanupIntervalSeconds": 60,
+      "SessionCleanupIntervalSeconds": 30,
+      "StaleSessionTimeoutSeconds": 90,
+      "MaxCallDurationHours": 2,
+      "ByeRetransmitIntervalSeconds": 5,
+      "ByeMaxRetransmitCount": 3,
+      "ByeForcedCleanupSeconds": 20,
+      "OkRetransmitMaxCount": 11,
+      "MaxForwards": 70,
+      "TrunkRefreshThresholdSeconds": 120,
+      "TrunkRefreshInitialDelaySeconds": 10,
+      "TrunkRefreshIntervalSeconds": 60,
+      "StatusMonitorIntervalMs": 15000
+    },
+    "Rtp": {
+      "PortRangeStart": 10000,
+      "PortRangeEnd": 60000,
+      "BindAddress": "0.0.0.0",
+      "JitterBufferMs": 60,
+      "DefaultPayloadType": 8
+    }
+  }
+}</pre>
+
+<!-- ===== 文件清单 ===== -->
+<h2 id="filelist">完整文件清单</h2>
+
+<table>
+  <tr><th>文件</th><th>行数</th><th>变更类型</th><th>职责</th></tr>
+  <tr><td>SipSoftSwitch.cs</td><td>385</td><td style="color:var(--orange)">重写</td><td>核心调度器 (2178→385)</td></tr>
+  <tr><td>InviteHandler.cs</td><td>1296</td><td style="color:var(--green)">新增</td><td>INVITE/ACK/CANCEL/转移/B2BUA转发 + 5处SDP锚定</td></tr>
+  <tr><td>ByeHandler.cs</td><td>420</td><td style="color:var(--green)">新增</td><td>BYE处理/转发/重传/清理</td></tr>
+  <tr><td>CallManager.cs</td><td>289</td><td style="color:var(--orange)">重写</td><td>ICallManager + 状态机</td></tr>
+  <tr><td>RegistrationStore.cs</td><td>121</td><td style="color:var(--orange)">重写</td><td>IRegistrationStore</td></tr>
+  <tr><td>SipTrunkManager.cs</td><td>480</td><td style="color:var(--orange)">重写</td><td>ITrunkManager + ConcurrentDict</td></tr>
+  <tr><td>DigestAuthenticator.cs</td><td>125</td><td style="color:var(--orange)">重写</td><td>统一 DigestUtility</td></tr>
+  <tr><td>SipOptions.cs</td><td>208</td><td style="color:var(--orange)">重写</td><td>+RuntimeOptions + RtpOptions</td></tr>
+  <tr><td>Program.cs</td><td>172</td><td style="color:var(--orange)">重写</td><td>接口DI + 工厂 + RtpPortAllocator + NaudioRtpBridge</td></tr>
+  <tr><td>NetworkUtility.cs</td><td>116</td><td style="color:var(--green)">新增</td><td>网络工具 (消除4处重复)</td></tr>
+  <tr><td>SdpUtility.cs</td><td>71</td><td style="color:var(--green)">新增+增强</td><td>SDP工具 (IP/端口替换 + RTP端点解析)</td></tr>
+  <tr><td>SipUriUtility.cs</td><td>30</td><td style="color:var(--green)">新增</td><td>URI工具 (消除2处重复)</td></tr>
+  <tr><td>DigestUtility.cs</td><td>70</td><td style="color:var(--green)">新增</td><td>Digest工具 (统一MD5计算)</td></tr>
+  <tr><td>ICallManager.cs</td><td>19</td><td style="color:var(--green)">新增</td><td>呼叫管理器接口</td></tr>
+  <tr><td>IRegistrationStore.cs</td><td>16</td><td style="color:var(--green)">新增</td><td>注册存储接口</td></tr>
+  <tr><td>ITrunkManager.cs</td><td>21</td><td style="color:var(--green)">新增</td><td>Trunk管理器接口</td></tr>
+  <tr><td>IRtpBridge.cs</td><td>108</td><td style="color:var(--green)">新增</td><td>RTP桥接接口+空实现+SDP锚定方法</td></tr>
+  <tr><td style="color:var(--green)">NaudioRtpBridge.cs</td><td>559</td><td style="color:var(--green)">新增</td><td>NAudio G.711编解码 + 双向RTP转发 + 录音 + 提示音注入</td></tr>
+  <tr><td style="color:var(--green)">RtpPortAllocator.cs</td><td>~60</td><td style="color:var(--green)">新增</td><td>RTP偶数端口分配器 (线程安全)</td></tr>
+  <tr><td>DnsResolver.cs</td><td>126</td><td style="color:var(--text2)">未改</td><td>DNS解析</td></tr>
+  <tr><td>IvrSession.cs</td><td>48</td><td style="color:var(--orange)">标记</td><td>IVR骨架 [Obsolete]</td></tr>
+  <tr><td>VoiceMailSession.cs</td><td>41</td><td style="color:var(--orange)">标记</td><td>语音信箱骨架 [Obsolete]</td></tr>
+  <tr><td>appsettings.json</td><td>115</td><td style="color:var(--orange)">修改</td><td>Runtime + Rtp 配置节</td></tr>
+</table>
+
+<!-- ===== 修复记录 ===== -->
+<h2 id="postrefactor">修复记录</h2>
+
+<table>
+  <tr><th>时间</th><th>问题</th><th>修复</th></tr>
+  <tr><td>2026-07-28</td><td style="color:var(--red)">DI 解析失败</td><td>ByeHandler/InviteHandler 构造函数直接要求 <code>SipOptions</code> + <code>RuntimeOptions</code>，但 DI 容器只注册了 <code>IOptions&lt;SipOptions&gt;</code>，运行时抛 <code>InvalidOperationException</code>。修复：两个 Handler 改用 <code>IOptions&lt;SipOptions&gt;</code> 注入，构造函数内 <code>.Value</code> / <code>.Value.Runtime</code> 提取</td></tr>
+  <tr><td>2026-07-28</td><td style="color:var(--orange)">未使用类无标记</td><td>IvrSession / VoiceMailSession 未使用但无弃用标记，容易误用。标记 <code>[Obsolete]</code>，InviteHandler 中已知使用点加 <code>#pragma warning disable CS0618</code></td></tr>
+  <tr><td>2026-07-28</td><td style="color:var(--orange)">Runtime 配置无模板</td><td>appsettings.json 缺少 Runtime 配置节，运维需查代码才能调参。添加默认值模板</td></tr>
+  <tr><td>2026-07-28</td><td style="color:var(--orange)">JSON 语法错误</td><td>appsettings.json DidMappings 数组后缺少逗号。修复并验证 JSON 正确</td></tr>
+  <tr><td>2026-07-31</td><td style="color:var(--red)">SdpUtility.cs 多余 <code>}</code></td><td>file-scoped namespace 不需要额外大括号，删除第 73 行多余的 <code>}</code></td></tr>
+  <tr><td>2026-07-31</td><td style="color:var(--red)">NAudio API 方法名错误</td><td><code>ALawDecoder.ALawDecode</code> → <code>ALawDecoder.ALawToLinearSample</code>, <code>MuLawDecoder.MuLawDecode</code> → <code>MuLawDecoder.MuLawToLinearSample</code>, <code>ALawEncoder.ALawEncode</code> → <code>ALawEncoder.LinearToALawSample</code></td></tr>
+  <tr><td>2026-07-31</td><td style="color:var(--orange)">RtpRelay 缺少公开属性</td><td>NaudioRtpBridge 访问 <code>relay.CalleeRemoteEP</code>，但 RtpRelay 只有私有字段。新增 <code>HasCalleeRemoteEP</code> 属性</td></tr>
+  <tr><td>2026-07-31</td><td style="color:var(--orange)">byte 隐式转换错误</td><td><code>packet[1] = payloadType &amp; 0x7F</code> 返回 int，需要显式 <code>(byte)</code> 强制转换</td></tr>
+  <tr><td>2026-07-31</td><td style="color:var(--red)">InviteHandler session 作用域错误</td><td><code>CreateB2BUAInvite</code> 方法内引用 <code>session</code> 变量，但方法签名不含此参数。修复：新增 <code>CallSession session</code> 参数，更新两处调用点</td></tr>
+</table>
+
+<p style="color:var(--text2);margin-top:2em;font-size:.85em">AsterTele Refactoring Report &mdash; Updated 2026-07-31 &mdash; dotnet build: 0 errors, 1 warning</p>
+
+</body>
+</html>

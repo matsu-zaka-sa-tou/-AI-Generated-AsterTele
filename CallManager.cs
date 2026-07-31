@@ -116,6 +116,94 @@ public class CallSession
     /// <summary>被叫侧原始 INVITE 的 CSeq 序号 (用于区分重传 vs re-INVITE)</summary>
     public int CalleeInviteCSeq { get; set; }
 
+    // ===== 状态机方法 (封装状态转换, 提供日志和校验) =====
+
+    /// <summary>
+    /// 安全状态转换: 校验合法转移并记录日志
+    /// 不合法的转换会被拒绝并返回 false
+    /// </summary>
+    public bool TryTransitionTo(CallState newState, ILogger? logger = null)
+    {
+        var oldState = State;
+        if (!IsValidTransition(oldState, newState))
+        {
+            logger?.LogWarning("非法状态转换: {Old} → {New} (SessionId={SessionId})", oldState, newState, SessionId);
+            return false;
+        }
+        State = newState;
+        logger?.LogDebug("会话状态转换: {Old} → {New} (SessionId={SessionId})", oldState, newState, SessionId);
+        return true;
+    }
+
+    /// <summary>
+    /// 标记主叫侧已挂断 (收到 BYE 或主动发 BYE)
+    /// </summary>
+    public void MarkCallerHungUp()
+    {
+        if (!CallerHungUp)
+        {
+            CallerHungUp = true;
+            if (State == CallState.Connected || State == CallState.Disconnecting)
+                State = CallState.Disconnecting;
+        }
+    }
+
+    /// <summary>
+    /// 标记被叫侧已挂断 (收到 BYE 或主动发 BYE)
+    /// </summary>
+    public void MarkCalleeHungUp()
+    {
+        if (!CalleeHungUp)
+        {
+            CalleeHungUp = true;
+            if (State == CallState.Connected || State == CallState.Disconnecting)
+                State = CallState.Disconnecting;
+        }
+    }
+
+    /// <summary>
+    /// 标记被叫侧 200 OK 已处理 (防止重传重复处理)
+    /// </summary>
+    public void MarkCallee200OkProcessed(string toTag, SIPEndPoint remoteEP)
+    {
+        if (Callee200OkProcessed) return;
+        Callee200OkProcessed = true;
+        CalleeToTag = toTag;
+        CalleeRemoteEP = remoteEP.CopyOf();
+        ConnectedAt = DateTime.UtcNow;
+        State = CallState.Connected;
+        NoAnswerCts?.Cancel();
+    }
+
+    /// <summary>
+    /// 重置被叫腿状态 (用于呼叫转移时替换被叫)
+    /// </summary>
+    public void ResetCalleeLeg()
+    {
+        Callee200OkProcessed = false;
+        Callee200OkRetransmitCount = 0;
+        AckForwarded = false;
+        AckSdpForwarded = false;
+        ForwardedCallerOkResponse = null;
+    }
+
+    private static bool IsValidTransition(CallState from, CallState to)
+    {
+        return (from, to) switch
+        {
+            (CallState.Initiating, CallState.Ringing) => true,
+            (CallState.Initiating, CallState.Connected) => true,
+            (CallState.Initiating, CallState.Disconnected) => true,
+            (CallState.Ringing, CallState.Connected) => true,
+            (CallState.Ringing, CallState.Disconnecting) => true,
+            (CallState.Ringing, CallState.Disconnected) => true,
+            (CallState.Connected, CallState.Disconnecting) => true,
+            (CallState.Connected, CallState.Disconnected) => true,
+            (CallState.Disconnecting, CallState.Disconnected) => true,
+            _ => false
+        };
+    }
+
     public override string ToString() => $"[{SessionId}] {CallerNumber} -> {CalleeNumber} ({State})";
 }
 
@@ -132,7 +220,7 @@ public enum CallState
 /// 呼叫管理器
 /// 管理所有活跃的 B2BUA 呼叫会话
 /// </summary>
-public class CallManager
+public class CallManager : ICallManager
 {
     private readonly ConcurrentDictionary<string, CallSession> _sessionsByCallerCallId = new();
     private readonly ConcurrentDictionary<string, CallSession> _sessionsByCalleeCallId = new();
@@ -185,7 +273,6 @@ public class CallManager
     /// </summary>
     public CallSession? FindByExtension(string number)
     {
-        // 先查主叫
         var session = _sessionsByCallerCallId.Values
             .FirstOrDefault(s => s.CallerNumber == number || s.CalleeNumber == number);
         return session;

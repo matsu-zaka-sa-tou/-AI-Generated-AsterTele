@@ -45,6 +45,12 @@ public class SipOptions
 
     /// <summary>入站 DID 映射列表</summary>
     public List<DidMapping> DidMappings { get; set; } = [];
+
+    /// <summary>运行时参数 (替代硬编码值)</summary>
+    public RuntimeOptions Runtime { get; set; } = new();
+
+    /// <summary>RTP 媒体桥接配置</summary>
+    public RtpOptions Rtp { get; set; } = new();
 }
 
 /// <summary>
@@ -218,4 +224,83 @@ public enum DidMappingType
 
     /// <summary>IVR 二次拨号: 播放提示音, 用户拨 8xxx 转到分机</summary>
     IVR
+}
+
+/// <summary>
+/// 运行时参数配置
+/// 将原硬编码值外置为可配置项, 无需改代码即可调整
+/// </summary>
+public class RuntimeOptions
+{
+    /// <summary>最大呼叫转移深度 (防止无限循环)</summary>
+    public int MaxForwardDepth { get; set; } = 5;
+
+    /// <summary>注册清理间隔 (秒)</summary>
+    public int RegistrationCleanupIntervalSeconds { get; set; } = 60;
+
+    /// <summary>会话清理间隔 (秒)</summary>
+    public int SessionCleanupIntervalSeconds { get; set; } = 30;
+
+    /// <summary>未接通会话超时 (秒)</summary>
+    public int StaleSessionTimeoutSeconds { get; set; } = 90;
+
+    /// <summary>最大通话时长 (小时)</summary>
+    public int MaxCallDurationHours { get; set; } = 2;
+
+    /// <summary>BYE 重传间隔 (秒)</summary>
+    public int ByeRetransmitIntervalSeconds { get; set; } = 5;
+
+    /// <summary>BYE 最大重传次数</summary>
+    public int ByeMaxRetransmitCount { get; set; } = 3;
+
+    /// <summary>BYE 强制清理超时 (秒)</summary>
+    public int ByeForcedCleanupSeconds { get; set; } = 20;
+
+    /// <summary>200 OK 重传上限 (超过后主动发 BYE)</summary>
+    public int OkRetransmitMaxCount { get; set; } = 11;
+
+    /// <summary>Max-Forwards 默认值</summary>
+    public int MaxForwards { get; set; } = 70;
+
+    /// <summary>Trunk 注册刷新提前量 (秒)</summary>
+    public int TrunkRefreshThresholdSeconds { get; set; } = 120;
+
+    /// <summary>Trunk 初始刷新延迟 (秒)</summary>
+    public int TrunkRefreshInitialDelaySeconds { get; set; } = 10;
+
+    /// <summary>Trunk 刷新间隔 (秒)</summary>
+    public int TrunkRefreshIntervalSeconds { get; set; } = 60;
+
+    /// <summary>状态监控间隔 (毫秒)</summary>
+    public int StatusMonitorIntervalMs { get; set; } = 15000;
+}
+
+/// <summary>
+/// RTP 媒体桥接配置
+/// 控制 AsterTele 作为媒体锚点的端口范围和行为
+/// </summary>
+public class RtpOptions
+{
+    /// <summary>RTP 端口范围起始 (必须为偶数)</summary>
+    public int PortRangeStart { get; set; } = 10000;
+
+    /// <summary>RTP 端口范围结束</summary>
+    public int PortRangeEnd { get; set; } = 60000;
+
+    /// <summary>RTP 绑定地址 (默认 0.0.0.0 监听所有网卡)</summary>
+    public string BindAddress { get; set; } = "0.0.0.0";
+
+    /// <summary>
+    /// RTP 媒体地址: SDP 中告诉对方发 RTP 到哪个 IP
+    /// 对本地分机侧: 填 AsterTele 的内网 IP (如 192.168.40.102), 分机可直接路由到达
+    /// 对运营商侧: 由 Trunk.OutboundAddress 决定 (如 172.48.242.167), 不受此配置影响
+    /// 若为空则自动取本机第一个非回环 IPv4 地址 (多网卡时可能不准, 建议显式配置)
+    /// </summary>
+    public string? MediaAddress { get; set; }
+
+    /// <summary>RTP 抖动缓冲大小 (毫秒)</summary>
+    public int JitterBufferMs { get; set; } = 60;
+
+    /// <summary>默认音频编码 (8=PCMA/G.711a, 0=PCMU/G.711u)</summary>
+    public int DefaultPayloadType { get; set; } = 8;
 }
