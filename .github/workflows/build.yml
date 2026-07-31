@@ -19,6 +19,10 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      # CI 环境没有 appsettings.json (被 gitignore), 用 sample 替代以通过构建
+      - name: Prepare appsettings.json from sample
+        run: cp appsettings.sample.json appsettings.json
+
       - name: Restore dependencies
         run: dotnet restore
 

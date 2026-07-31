@@ -227,6 +227,12 @@ internal class RtpRelay : IDisposable
     private bool _callerEpLearned;
     private bool _calleeEpLearned;
 
+    // 首包缓冲: 目标端点为 null 时暂存 RTP 包, 避免首包丢失
+    // 对 56K 猫拨号等场景至关重要 — 握手阶段初始信号缺损可能导致连接协商失败
+    private const int MAX_PENDING_PACKETS = 50; // ~1 秒 (50 × 20ms)
+    private readonly ConcurrentQueue<byte[]> _pendingForCallee = new(); // 主叫→被叫方向, 等待被叫端点
+    private readonly ConcurrentQueue<byte[]> _pendingForCaller = new(); // 被叫→主叫方向, 等待主叫端点
+
     // NAudio 录音
     private WaveFileWriter? _recordingWriter;
     private readonly object _recordingLock = new();
@@ -270,12 +276,18 @@ internal class RtpRelay : IDisposable
         // 仅在未从实际 RTP 包学习到地址时才接受 SDP 端点
         // SDP 中的 IP 可能是运营商内网 IP (不可路由), 实际地址从 RTP 包源地址学习
         if (!_callerEpLearned)
+        {
             _callerRemoteEP = ep;
+            FlushPendingPackets(_pendingForCaller, _callerUdp, ep, "被叫→主叫");
+        }
     }
     public void SetCalleeRemoteEP(IPEndPoint ep)
     {
         if (!_calleeEpLearned)
+        {
             _calleeRemoteEP = ep;
+            FlushPendingPackets(_pendingForCallee, _calleeUdp, ep, "主叫→被叫");
+        }
     }
 
     /// <summary>
@@ -290,17 +302,21 @@ internal class RtpRelay : IDisposable
 
         // 收到主叫的 RTP → 学习主叫的真实地址 (用于被叫→主叫方向转发目标)
         // 转发目标: _calleeRemoteEP (运营商)
+        // 待发缓冲: _pendingForCallee (被叫端点未知时暂存)
         _callerRecvTask = Task.Run(() => ReceiveLoop(
             _callerUdp, _calleeUdp, () => _calleeRemoteEP, "主叫→被叫",
             () => _callerEpLearned,
-            ep => { _callerRemoteEP = ep; _callerEpLearned = true; }));
+            ep => { _callerRemoteEP = ep; _callerEpLearned = true; },
+            _pendingForCallee));
 
         // 收到被叫的 RTP → 学习被叫的真实地址 (用于主叫→被叫方向转发目标)
         // 转发目标: _callerRemoteEP (主叫)
+        // 待发缓冲: _pendingForCaller (主叫端点未知时暂存)
         _calleeRecvTask = Task.Run(() => ReceiveLoop(
             _calleeUdp, _callerUdp, () => _callerRemoteEP, "被叫→主叫",
             () => _calleeEpLearned,
-            ep => { _calleeRemoteEP = ep; _calleeEpLearned = true; }));
+            ep => { _calleeRemoteEP = ep; _calleeEpLearned = true; },
+            _pendingForCaller));
     }
 
     /// <summary>
@@ -309,12 +325,14 @@ internal class RtpRelay : IDisposable
     /// </summary>
     private async Task ReceiveLoop(UdpClient receiver, UdpClient sender,
         Func<IPEndPoint?> getDest, string direction,
-        Func<bool> isEpLearned, Action<IPEndPoint> learnRemoteEP)
+        Func<bool> isEpLearned, Action<IPEndPoint> learnRemoteEP,
+        ConcurrentQueue<byte[]> pendingQueue)
     {
         _logger.LogDebug("RTP 转发循环启动: {Direction}", direction);
 
         int recvCount = 0;
         int dropCount = 0;
+        int bufferedCount = 0;
         var lastStatsTime = DateTime.UtcNow;
 
         while (!_cts.IsCancellationRequested)
@@ -339,6 +357,8 @@ internal class RtpRelay : IDisposable
                 var dest = getDest();
                 if (dest != null)
                 {
+                    // 先刷新待发缓冲包 (保持时序, 避免首包丢失)
+                    FlushPendingPackets(pendingQueue, sender, dest, direction);
                     await sender.SendAsync(result.Buffer, dest).ConfigureAwait(false);
 
                     // NAudio 录音: 解码被叫侧音频
@@ -349,14 +369,24 @@ internal class RtpRelay : IDisposable
                 }
                 else
                 {
-                    dropCount++;
+                    // 目标端点尚未知 (对端 SDP 还未到达), 暂存到缓冲队列
+                    // 避免首包丢失: 56K 猫拨号等场景握手信号不能缺
+                    if (pendingQueue.Count < MAX_PENDING_PACKETS)
+                    {
+                        pendingQueue.Enqueue(result.Buffer);
+                        bufferedCount++;
+                    }
+                    else
+                    {
+                        dropCount++; // 缓冲满, 丢弃最旧的包
+                    }
                 }
 
                 // 每 5 秒输出一次统计
                 if (DateTime.UtcNow - lastStatsTime >= TimeSpan.FromSeconds(5))
                 {
-                    _logger.LogInformation("RTP 统计: {Direction} 收={Recv} 转发 丢包={Drop} 目标={Dest}",
-                        direction, recvCount, dropCount, dest);
+                    _logger.LogInformation("RTP 统计: {Direction} 收={Recv} 缓冲={Buffered} 丢包={Drop} 目标={Dest}",
+                        direction, recvCount, bufferedCount, dropCount, dest);
                     lastStatsTime = DateTime.UtcNow;
                 }
             }
@@ -616,6 +646,29 @@ internal class RtpRelay : IDisposable
         // Payload
         Buffer.BlockCopy(payload, 0, packet, 12, payload.Length);
         return packet;
+    }
+
+    /// <summary>
+    /// 刷新待发缓冲包: 目标端点变为可用时, 将暂存的 RTP 包发送出去
+    /// 由 SetCallerRemoteEP/SetCalleeRemoteEP 触发, 也在 ReceiveLoop 中目标端点可用时触发
+    /// </summary>
+    private void FlushPendingPackets(ConcurrentQueue<byte[]> queue, UdpClient sender, IPEndPoint dest, string direction)
+    {
+        int count = 0;
+        while (queue.TryDequeue(out var bufferedPacket))
+        {
+            try
+            {
+                sender.Send(bufferedPacket, bufferedPacket.Length, dest);
+                count++;
+            }
+            catch { break; } // 发送失败 (socket 可能已关闭), 停止刷新
+        }
+        if (count > 0)
+        {
+            _logger.LogInformation("RTP 缓冲刷新: {Direction} 发送 {Count} 个待发包 → {Dest}",
+                direction, count, dest);
+        }
     }
 
     public void Dispose()

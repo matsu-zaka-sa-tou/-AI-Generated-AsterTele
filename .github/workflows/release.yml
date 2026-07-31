@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: AsterTele-linux-x64
+          - os: windows-latest
+            rid: win-x64
+            artifact: AsterTele-win-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Prepare appsettings.json from sample
+        shell: bash
+        run: cp appsettings.sample.json appsettings.json
+
+      - name: Restore dependencies
+        run: dotnet restore -r ${{ matrix.rid }}
+
+      - name: Publish
+        run: |
+          dotnet publish -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -o ./publish
+        shell: bash
+
+      # 移除 sample 文件, 发布包只需占位的 appsettings.json
+      - name: Clean up publish directory
+        shell: bash
+        run: |
+          rm -f ./publish/appsettings.sample.json
+
+      - name: Create archive (Linux)
+        if: runner.os == 'Linux'
+        run: tar czf ${{ matrix.artifact }}.tar.gz -C ./publish .
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path ./publish/* -DestinationPath ${{ matrix.artifact }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}.tar.gz
+            ${{ matrix.artifact }}.zip
+          if-no-files-found: warn
+
+  create-release:
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: List artifacts
+        run: find ./artifacts -type f | head -20
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            ./artifacts/AsterTele-linux-x64/*.tar.gz
+            ./artifacts/AsterTele-win-x64/*.zip
