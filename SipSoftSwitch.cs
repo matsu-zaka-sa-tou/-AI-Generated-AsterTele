@@ -109,6 +109,23 @@ public class SipSoftSwitch : IHostedService, IDisposable
             _logger.LogInformation("对外公布地址: {Address}:{Port} (NAT 模式)", advAddr, advPort);
         }
 
+        // 初始化服务器本地端点
+        // 关键: 监听 0.0.0.0 时, SIP 请求的 localEndPoint.Address 恒为 0.0.0.0,
+        // 不可用作 Contact/Via/Record-Route 地址, 必须在启动时主动获取真实本机 IP
+        // 否则 GetContactEPForClient 对同子网客户端会错误返回 AdvertisedEP (路由器地址),
+        // 导致同子网客户端 (如 Zoiper) 的 BYE 发到路由器而非 AsterTele 直连地址
+        //
+        // 优先使用 MediaAddress 配置值 (通常与 SIP 信令地址相同, 如 192.168.40.102)
+        // 只有未配置时才 fallback 到自动探测 (多网卡时可能选错适配器)
+        var localIPStr = !string.IsNullOrEmpty(_options.Rtp.MediaAddress)
+            ? _options.Rtp.MediaAddress
+            : NetworkUtility.GetLocalIPv4();
+        _ctx.LocalEP = new SIPEndPoint(SIPProtocolsEnum.udp,
+            IPAddress.Parse(localIPStr), _options.SipPort);
+        _logger.LogInformation("服务器本地地址: {Address}:{Port} (来源: {Source})",
+            _ctx.LocalEP.Address, _ctx.LocalEP.Port,
+            !string.IsNullOrEmpty(_options.Rtp.MediaAddress) ? "MediaAddress 配置" : "自动探测");
+
         // 启动定时清理过期注册
         _cleanupTimer = new Timer(_ => _registrationStore.CleanupExpired(), null,
             TimeSpan.FromSeconds(_runtime.RegistrationCleanupIntervalSeconds),
@@ -159,14 +176,8 @@ public class SipSoftSwitch : IHostedService, IDisposable
                     _ctx.AdvertisedEP.Address, _ctx.AdvertisedEP.Port);
             }
 
-            // 记录服务器本地端点
-            if (_ctx.LocalEP == SIPEndPoint.Empty)
-            {
-                _ctx.LocalEP = new SIPEndPoint(SIPProtocolsEnum.udp,
-                    localEndPoint.Address, _options.SipPort);
-                _logger.LogInformation("服务器本地地址: {Address}:{Port}",
-                    _ctx.LocalEP.Address, _ctx.LocalEP.Port);
-            }
+            // LocalEP 已在 StartAsync 中用 GetLocalIPv4() 初始化
+            // 不再从 localEndPoint.Address 推断 (监听 0.0.0.0 时恒为 0.0.0.0)
 
             _logger.LogDebug("<<< SIP 请求: {Method} {URI} 从 {Remote}",
                 sipRequest.Method, sipRequest.URI, remoteEndPoint);

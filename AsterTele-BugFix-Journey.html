@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AsterTele SIP 软交换机 — Bug 修复历程报告</title>
+  <title>AsterTele SIP 软交换机 — Bug 修复历程报告 v4.1</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -353,7 +353,7 @@
 <div class="hero">
   <div class="hero-icon">🔧</div>
   <h1>AsterTele Bug 修复历程</h1>
-  <div class="subtitle">从第一个崩溃到 RTP 媒体锚定 — C# SIP B2BUA 软交换机的调试全纪录</div>
+  <div class="subtitle">从第一个崩溃到 NAT 穿透 — C# SIP B2BUA 软交换机的调试全纪录</div>
   <div class="meta">
     <span>📦 SIPSorcery 10.0.12</span>
     <span>🖥️ .NET 8 / C#</span>
@@ -365,20 +365,20 @@
 <!-- ===== STATS ===== -->
 <div class="stats">
   <div class="stat-card">
-    <span class="num" style="color:var(--red)">12</span>
-    <span class="label">Bug 轮次</span>
+    <span class="num" style="color:var(--red)">16</span>
+     <span class="label">Bug 轮次</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--orange)">4</span>
-    <span class="label">根因发现</span>
+    <span class="num" style="color:var(--orange)">5</span>
+     <span class="label">根因发现</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--green)">11</span>
-    <span class="label">核心修复</span>
+    <span class="num" style="color:var(--green)">18</span>
+     <span class="label">核心修复</span>
   </div>
   <div class="stat-card">
-    <span class="num" style="color:var(--purple)">3</span>
-    <span class="label">里程碑</span>
+    <span class="num" style="color:var(--purple)">4</span>
+     <span class="label">里程碑</span>
   </div>
   <div class="stat-card">
     <span class="num" style="color:var(--cyan)">~3200</span>
@@ -407,9 +407,11 @@
 <span class="hl-accent">│</span>            <span class="hl-purple">│</span> RegistrationStore   <span class="hl-accent">~140</span> <span class="hl-purple">│</span>                      <span class="hl-accent">│</span>
 <span class="hl-accent">│</span>            <span class="hl-purple">└──────────────────────────┘</span>                      <span class="hl-accent">│</span>
 <span class="hl-accent">│</span>                                                                   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>  <span class="hl-green">RTP SDP 策略:</span>                                                   <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>    对运营商 → c=172.48.242.167 (路由器 DNAT → .102)              <span class="hl-accent">│</span>
-<span class="hl-accent">│</span>    对本地分机 → c=192.168.40.102 (直连可达)                      <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>  <span class="hl-green">RTP SDP 策略 (NAT 感知):</span>                                        <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>    对运营商(被叫侧) → c=172.48.242.167 (路由器 DNAT → .102)      <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>    对本地分机(被叫侧) → c=192.168.40.102 (MediaAddress, 直连)   <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>    对主叫(同子网)     → c=192.168.40.102 (MediaAddress, 直连)   <span class="hl-accent">│</span>
+<span class="hl-accent">│</span>    对主叫(跨子网/NAT) → c=<span class="hl-red">192.168.40.1</span>  (AdvertisedAddress)   <span class="hl-accent">│</span>
 <span class="hl-accent">└───────────────────────────────────────────────────────────────────┘</span></div>
 </div>
 
@@ -850,8 +852,8 @@ DAG1000                        中国电信 IMS
           <pre>1. 外呼 INVITE           → RewriteSdpToCallee  (172.48.242.167)
 2. 外呼 INVITE 401 重发   → RewriteSdpToCallee  (172.48.242.167)
 3. 入站 INVITE 构造本地   → RewriteSdpToCallee  (192.168.40.102)
-4. 183/180 转发给主叫     → RewriteSdpToCaller  (192.168.40.102)
-5. 200 OK 转发给主叫      → RewriteSdpToCaller  (192.168.40.102)</pre>
+4. 183/180 转发给主叫     → RewriteSdpToCaller  (<span style="color:var(--orange)">GetCallerSideRtpIp: NAT检测</span>)
+5. 200 OK 转发给主叫      → RewriteSdpToCaller  (<span style="color:var(--orange)">GetCallerSideRtpIp: NAT检测</span>)</pre>
         </div>
       </div>
     </div>
@@ -964,7 +966,261 @@ DAG1000                        中国电信 IMS
       </div>
     </div>
 
-  </div>
+    <!-- Phase 16: NAT 阻断 RTP -->
+    <div class="timeline-item discovery">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-discovery">根因发现</span>
+        <span class="timeline-title">NAT 阻断 RTP 端口流量 — 路由器防火墙只放行 SIP(5060)</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>内机打内机（8001→8002）时，主叫方只能听到自己的回声（圆路返回），被叫方完全听不到声音。信令正常，RTP 不通。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">网络诊断（实测验证）</div>
+          <p><strong>关键实验</strong>：在 AsterTele (192.168.40.102) 上监听 UDP 10004 端口，从 DAG1000 (192.168.0.149) 发送 UDP 包，<strong>15 秒内未到达</strong>。</p>
+          <pre>网络拓扑:
+  运营商 IMS (172.26.160.38)
+      ↕ 只可达 172.48.242.167
+  路由器 WAN  (172.48.242.167)   ← 电信侧唯一可达地址
+  路由器 LAN1 (192.168.0.1)      ← DAG1000 侧网关
+  路由器 LAN2 (192.168.40.1)     ← AsterTele 侧网关，做 SNAT/DNAT
+      ↕
+  AsterTele (192.168.40.102)     ← 电脑，Rtp.MediaAddress
+      ↕ 直连
+  Zoiper (192.168.40.100)        ← 8002，同子网</pre>
+          <p><strong>结论：路由器确实阻止了 DAG1000→AsterTele 的 RTP 端口流量。</strong></p>
+          <p>• AsterTele → DAG1000 方向可达（ping 通，TTL=63，纯路由）</p>
+          <p>• DAG1000 → AsterTele 非 5060 端口：<strong>被路由器防火墙阻止</strong></p>
+          <p>• DAG1000 的 SIP 信令源地址是 <code>192.168.40.1:11345</code>（经路由器 SNAT）</p>
+          <p>• 路由器对 DAG1000 出站流量做 SNAT，但防火墙只放行了 SIP(5060) 端口</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复</div>
+          <p>在 OpenWrt 路由器上添加防火墙规则，允许 UDP 10000-60000 从 LAN1(192.168.0.0/24) 转发到 AsterTele(192.168.40.102)：</p>
+          <pre>config rule
+    option name 'Allow-RTP-LAN1-LAN2'
+    option src 'lan'
+    option dest 'lan'
+    option proto 'udp'
+    option dest_ip '192.168.40.102'
+    option dest_port '10000-60000'
+    option target 'ACCEPT'</pre>
+          <p>配置后重启 AsterTele 测试，8001→8002 通话<strong>双向音频正常</strong>。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 17: RTP 首包缓冲 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">Bug #14</span>
+        <span class="timeline-title">RTP 首包丢包 — 地址学习前目标端点为 null，首包被丢弃</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>RTP 地址学习需要收到第一个包才能确定远端地址。在学习完成前，转发目标端点为 <code>null</code>，首个 RTP 包被直接丢弃。</p>
+          <p>虽然只丢失 ~20ms 音频（1 个 RTP 包），但在通话建立瞬间可能导致轻微的「噗」声或起始音节缺失。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复</div>
+          <p>新增 <code>ConcurrentQueue&lt;byte[]&gt;</code> 缓冲机制：</p>
+          <p>1. 地址学习完成前，收到的 RTP 包先入队列缓冲</p>
+          <p>2. 地址学习完成后，调用 <code>FlushPendingPackets()</code> 将缓冲包批量转发</p>
+          <p>3. 队列最大容量 50 包（防止内存泄漏），超出时丢弃最旧的包</p>
+          <pre>收到 RTP 包 → 地址已学习? → 是: 直接转发
+                                → 否: 入队列 + 尝试学习地址
+地址学习完成 → FlushPendingPackets() → 逐包转发缓冲包</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 18: NAT 感知 SDP 地址 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">Bug #15</span>
+        <span class="timeline-title">内机打内机 RTP 回声 — NAT 环境下直连 RTP 不可行 + NAT 感知 SDP 地址</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>8001 (DAG1000, 经 NAT) 拨打 8002 (Zoiper, 同子网) 时：</p>
+          <p>• 主叫方只能听到自己的回声（圆路返回）</p>
+          <p>• 被叫方完全听不到声音</p>
+          <p>• 通话建立后 SDP 中主叫侧 IP 为 <code>192.168.40.102</code>（MediaAddress），但 DAG1000 发 RTP 到这个地址<strong>被路由器防火墙阻止</strong></p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">直连 RTP 也不可行的证明</div>
+          <p>曾尝试让内机打内机跳过 RTP 锚定（直连 RTP），但同样失败：</p>
+          <p>• DAG1000 的 SDP 地址是 <code>192.168.0.149:24646</code>（内网 IP）→ Zoiper 发 RTP 到此地址 → 不可路由</p>
+          <p>• DAG1000 发 RTP 到 Zoiper → 经 SNAT 后源地址变成 <code>192.168.40.1:YYYYY</code></p>
+          <p>• Zoiper 做地址学习后发回给 NAT 映射地址 → 路由器 NAT 反射回给 DAG1000 → <strong>回音</strong></p>
+          <p><strong>结论：NAT 环境下直连 RTP 不可行，所有通话必须走 RTP 锚定。</strong></p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">NAT 场景分析</div>
+          <pre>场景 1: Zoiper (192.168.40.100) 打外线
+  主叫同子网 → SDP 用 MediaAddress (192.168.40.102) → 直连 ✅
+
+场景 2: DAG1000 (192.168.0.149, 经 192.168.40.1 SNAT) 打外线
+  主叫跨子网 → SDP 用 AdvertisedAddress (192.168.40.1) → 经路由器转发 ✅
+  (如果用 MediaAddress, DAG1000 发 RTP 到 .102 → 被路由器阻止 ❌)</pre>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复：GetCallerSideRtpIp() NAT 感知方法</div>
+          <p>在 <code>InviteHandler.cs</code> 中新增 <code>GetCallerSideRtpIp(session)</code> 方法，根据主叫网络位置动态选择 SDP 地址：</p>
+          <pre>GetCallerSideRtpIp(CallSession session):
+  callerEP = session.CallerRemoteEP   // 主叫的实际源地址
+  if IsSameSubnet(callerEP, _localEP, "255.255.255.0"):
+      return MediaAddress             // 192.168.40.102 (同子网直连)
+  else:
+      return AdvertisedAddress         // 192.168.40.1   (跨子网经路由器)</pre>
+          <p>应用于 InviteHandler 中 183/180 和 200 OK 转发给主叫的两处 SDP 锚定调用点。</p>
+          <p>同时废弃 <code>SkipRtpAnchoring</code> 属性（所有通话均走 RTP 锚定，不再有「内机跳过锚定」的特殊路径）。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">SDP 地址策略总表（最终版）</div>
+          <table>
+            <thead>
+              <tr><th>SDP 场景</th><th>IP 来源</th><th>实际值</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>对运营商 (RewriteSdpToCallee)</td><td><code>trunkOutIp</code></td><td>172.48.242.167</td><td>运营商唯一可达</td></tr>
+              <tr><td>对本地分机 (RewriteSdpToCallee)</td><td><code>MediaAddress</code></td><td>192.168.40.102</td><td>分机同子网可直达</td></tr>
+              <tr><td>对主叫 — 同子网 (RewriteSdpToCaller)</td><td><code>MediaAddress</code></td><td>192.168.40.102</td><td>同子网直连</td></tr>
+              <tr style="background:rgba(248,81,73,0.06)"><td>对主叫 — 跨子网/NAT (RewriteSdpToCaller)</td><td><code style="color:var(--red)">AdvertisedAddress</code></td><td style="color:var(--red)">192.168.40.1</td><td><strong>经路由器端口转发</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 19: BYE 跟挂不工作 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #16</span>
+        <span class="timeline-title">内机打内机 BYE 挂断不跟挂 — LocalEP=0.0.0.0 + 多网卡适配器选错</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>8002(Zoiper)主叫拨打8001(DAG1000)，Zoiper挂断后 BYE 发不到服务器，DAG1000不会跟挂。8小时反复测试均失败。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根因1：LocalEP 被赋值为 0.0.0.0:5060</div>
+          <p><code>SipSoftSwitch</code> 监听 <code>0.0.0.0</code> 时，SIPSorcery 传入的 <code>localEndPoint.Address</code> 恒为 <code>0.0.0.0</code>。</p>
+          <p><code>_localEP</code> 被赋值为 <code>0.0.0.0:5060</code> → <code>IsSameSubnet</code> 永远返回 false → 同子网客户端走了路由器地址 <code>192.168.40.1</code> → 路由器端口转发是单向的，同子网到路由器的 UDP 不会转发回服务器。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根因2：GetLocalIPv4() 选错了网卡适配器</div>
+          <p>电脑有多个网卡/虚拟适配器，<code>GetLocalIPv4()</code> 返回 <code>192.168.20.100</code>（VPN 适配器）而非 <code>192.168.40.102</code>（实际局域网 IP）。</p>
+          <p>当 <code>LocalEP</code> fallback 到 <code>GetLocalIPv4()</code> 时，子网判断同样失败。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">附带问题：Via 头重复</div>
+          <p><code>CreateB2BUAInvite</code> 中 <code>SIPRequest.GetRequest</code> 自动生成默认 Via（<code>0.0.0.0</code>），然后 <code>PushViaHeader</code> 又加了正确的 Via，导致 Via 头重复。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">附带问题：REGISTER Contact/Via 用了内网 IP</div>
+          <p><code>SipTrunkManager</code> 的 REGISTER Contact/Via 之前用 <code>GetLocalIPv4()</code>（<code>192.168.20.100</code>），运营商不可达。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">附带问题：外呼 INVITE From/Contact 用了错误的本地 IP</div>
+          <p>外呼 INVITE/re-INVITE 的 From host 和 Contact host 之前用 <code>localIP</code>（自动探测，可能选错），现改为 <code>clientUriHost</code> 和 <code>trunkOutIp</code>。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复1：LocalEP 优先使用 MediaAddress 配置值</div>
+          <p><code>SipSoftSwitch</code> 初始化时，<code>_localEP</code> 优先使用 <code>MediaAddress</code> 配置值（<code>192.168.40.102</code>），不再用 <code>GetLocalIPv4()</code> 自动探测。</p>
+          <pre>_localEP = MediaAddress 有值 ? new SIPEndPoint(MediaAddress, 5060)
+                             : new SIPEndPoint(GetLocalIPv4(), 5060)  // fallback</pre>
+          <p>日志输出：<code>服务器本地地址: 192.168.40.102:5060 (来源: MediaAddress 配置)</code></p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复2：Via 头去重</div>
+          <p>在 <code>CreateB2BUAInvite</code> 中 <code>PushViaHeader</code> 之前增加 <code>Vias.Via.Clear()</code>，清除 <code>SIPRequest.GetRequest</code> 自动生成的默认 Via。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复3：REGISTER Contact/Via 用 outboundIp</div>
+          <p><code>SipTrunkManager</code> 的 REGISTER Contact/Via 改用 <code>outboundIp</code>（<code>172.48.242.167</code>），<code>ResolveOutboundAddress</code> 的 fallback 也用 <code>MediaAddress</code> 而非 <code>GetLocalIPv4()</code>。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复4：外呼 INVITE 地址修正</div>
+          <p>外呼 INVITE/re-INVITE 的 From host 用 <code>clientUriHost</code>（来自 Trunk 配置），Contact host 用 <code>trunkOutIp:port</code>，Via sent-by 用 <code>trunkOutIp</code>。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">测试验证（092722 日志）</div>
+          <p><strong>场景1：8002(Zoiper)→8001(DAG1000)</strong> — 8001先挂 → BYE 到 <code>192.168.40.102:5060</code> → 转发给 8002 → 8002确认 → 双方清理 ✅</p>
+          <p><strong>场景2：8002(Zoiper)→8001(DAG1000)</strong> — 8002先挂 → BYE 到 <code>192.168.40.102:5060</code> → 转发给 8001 → 8001确认 → 双方清理 ✅</p>
+          <p><strong>场景3：8001(DAG1000)→8002(Zoiper)</strong> — 8002先挂 → BYE 到 <code>192.168.40.102:5060</code> → 转发给 8001 → 8001确认 → 双方清理 ✅</p>
+          <p><strong>关键确认</strong>：Zoiper 的 BYE 和 ACK 都发到了 <code>192.168.40.102:5060</code>（直连地址），而非路由器地址。Contact/Record-Route/Via 全部正确使用同子网直连地址。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 20: BYE Route/Request-URI 修复 -->
+    <div class="timeline-item bug">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-bug">Bug #17</span>
+        <span class="timeline-title">本地通话 BYE 跟挂失败 — Route 指向自身 + Request-URI 用 NAT 内网地址</span>
+      </div>
+      <div class="timeline-body">
+        <div class="problem-box">
+          <div class="tag">问题</div>
+          <p>8002(Zoiper)挂断后，BYE 转发给 8001(DAG1000) 仍不跟挂。对比旧版 Gitee 代码（正常工作）发现 BYE 构建逻辑存在两处关键偏差。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根因1（高概率）：Route 头错误地指向 AsterTele 自身</div>
+          <p><code>ByeHandler.SendByeToCallee</code> 将 INVITE 的 <code>Record-Route</code> 复制为 BYE 的 <code>Route</code> 头。但 AsterTele 是被叫侧 dialog 的 UAC，按 RFC 3261 §12.1.2，UAC 的路由集应来自 <strong>200 OK 响应</strong>的 Record-Route（反转），而非 INVITE 的 Record-Route。</p>
+          <p>本地设备（DAG1000/Zoiper）的 200 OK 不含 Record-Route，所以路由集应为<strong>空</strong>。当前代码把 <code>Record-Route: sip:192.168.40.102;lr</code> 拷贝进 BYE Route 头，指向 AsterTele 自身，导致 SIPSorcery 可能按 Route 发回 AsterTele 或 DAG1000 无法匹配 dialog。</p>
+          <p><strong>旧版代码不在本地通话 BYE 中添加 Route 头</strong>，所以不会有此问题。</p>
+        </div>
+        <div class="discovery-box">
+          <div class="tag">根因2（中概率）：Request-URI 用了 NAT 内网地址</div>
+          <p>当前代码 <code>SendByeToCallee</code> 优先使用 <code>session.CalleeContactURI</code>（来自 DAG1000 的 200 OK Contact），对于 NAT 后的设备，200 OK Contact 是内网地址（如 <code>192.168.0.149</code>），从 AsterTele 侧不可达。</p>
+          <p><strong>旧版代码始终使用 <code>session.CalleeInvite.URI</code></strong>（即 INVITE 的 Request-URI，也就是注册的 Contact URI，经 SNAT 后的 <code>192.168.40.1:11345</code>），这个是可达的。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复1：本地通话 BYE 不添加 Route 头</div>
+          <p><code>SendByeToCallee</code>：只有外呼 Trunk 通话才复制 Record-Route 为 Route（运营商 SBC 需要路由）；本地通话跳过 Route 设置。</p>
+          <p><code>SendByeToCaller</code>：只有入站 Trunk 通话才添加 Route 头（运营商 INVITE 的 Record-Route 指向运营商 SBC）；本地/外呼通话跳过 Route 设置。</p>
+        </div>
+        <div class="solution-box">
+          <div class="tag">修复2：本地通话 BYE Request-URI 改回 CalleeInvite.URI</div>
+          <p>本地被叫方向，BYE Request-URI 使用 <code>session.CalleeInvite.URI</code>（INVITE 的 Request-URI，即注册时的 Contact URI），不再使用 200 OK Contact（可能含 NAT 内网地址不可达）。</p>
+          <p>外呼 Trunk 方向保持不变，仍优先使用 <code>session.CalleeContactURI</code>（运营商 200 OK Contact）。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 19b: SIP 信令地址策略总结 -->
+    <div class="timeline-item fix">
+      <div class="timeline-header">
+        <span class="timeline-phase phase-fix">修复总结</span>
+        <span class="timeline-title">SIP 信令地址策略总表（最终版，含本次修正）</span>
+      </div>
+      <div class="timeline-body">
+        <table>
+          <thead>
+            <tr><th>场景</th><th>地址</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>LocalEP (服务器本地地址)</td><td><code>MediaAddress</code> = 192.168.40.102</td><td>优先用配置，fallback 自动探测</td></tr>
+            <tr><td>被叫侧 INVITE Contact/Record-Route/Via (同子网)</td><td><code>192.168.40.102:5060</code></td><td><code>GetContactEPForClient</code> 判断同子网</td></tr>
+            <tr><td>被叫侧 INVITE Contact/Record-Route/Via (跨子网)</td><td><code>192.168.40.1:5060</code></td><td><code>GetContactEPForClient</code> 判断跨子网</td></tr>
+            <tr><td>200 OK Contact/Record-Route (同子网主叫)</td><td><code>192.168.40.102:5060</code></td><td>同子网直连</td></tr>
+            <tr><td>200 OK Contact/Record-Route (跨子网主叫)</td><td><code>192.168.40.1:5060</code></td><td>经路由器</td></tr>
+            <tr><td>REGISTER Contact/Via (对运营商)</td><td><code>172.48.242.167:5060</code></td><td><code>ResolveOutboundAddress</code> 返回 trunk 出站地址</td></tr>
+            <tr><td>外呼 INVITE/re-INVITE From host</td><td><code>clientUriHost</code></td><td>来自 Trunk 配置</td></tr>
+            <tr><td>外呼 INVITE/re-INVITE Contact host</td><td><code>trunkOutIp:port</code></td><td>运营商可达地址</td></tr>
+            <tr><td>外呼 INVITE/re-INVITE Via sent-by</td><td><code>trunkOutIp</code></td><td>运营商可达地址</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+   </div>
 </div>
 
 <!-- ===== STATUS TABLE ===== -->
@@ -1097,8 +1353,50 @@ DAG1000                        中国电信 IMS
       <tr>
         <td>RTP 首包丢包</td>
         <td>地址学习前目标端点为 null，首包被丢弃</td>
-        <td>待优化（影响微小，~20ms 音频）</td>
-        <td><span class="badge badge-partial">低优先</span></td>
+        <td>ConcurrentQueue 缓冲 + FlushPendingPackets</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>NAT 阻断 RTP 端口流量</td>
+        <td>路由器防火墙只放行 SIP(5060)</td>
+        <td>OpenWrt 添加 RTP 端口转发规则</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>内机打内机 RTP 回声</td>
+        <td>跨子网主叫 SDP 用 MediaAddress 被 NAT 阻断</td>
+        <td>GetCallerSideRtpIp() NAT 感知 + AdvertisedAddress</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>内机打内机 BYE 跟挂失败</td>
+        <td>LocalEP=0.0.0.0 + GetLocalIPv4() 选错网卡适配器</td>
+        <td>LocalEP 优先用 MediaAddress 配置值</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>Via 头重复</td>
+        <td>SIPRequest.GetRequest 自动生成默认 Via + PushViaHeader 又加了一个</td>
+        <td>PushViaHeader 前 Vias.Via.Clear()</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>REGISTER Contact/Via 用内网 IP</td>
+        <td>GetLocalIPv4() 选错网卡返回 192.168.20.100</td>
+        <td>改用 outboundIp (172.48.242.167) + MediaAddress fallback</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>外呼 INVITE From/Contact 地址错误</td>
+        <td>localIP 自动探测可能选错网卡</td>
+        <td>From host 用 clientUriHost, Contact host 用 trunkOutIp</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
+      </tr>
+      <tr>
+        <td>本地通话 BYE 跟挂失败（Route 指向自身）</td>
+        <td>BYE 错误复制 INVITE Record-Route 为 Route，导致 BYE 路由回 AsterTele 自身；Request-URI 用 NAT 内网地址不可达</td>
+        <td>本地通话 BYE 不添加 Route 头；Request-URI 改回 CalleeInvite.URI</td>
+        <td><span class="badge badge-fixed">已修复</span></td>
       </tr>
     </tbody>
   </table>
@@ -1144,6 +1442,28 @@ DAG1000                        中国电信 IMS
     <div class="summary-card">
       <h4><span style="color:var(--green)">⑨</span> 短号拨号修复</h4>
       <p>外呼号码 +86 前缀阈值从 Length>=5 改为 Length>=7，避免 10000 等服务号被误加国际前缀。两处同步修改（外呼 INVITE + re-INVITE）。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--orange)">⑩</span> NAT 感知 SDP 地址</h4>
+      <p>新增 <code>GetCallerSideRtpIp()</code> 方法：同子网主叫用 <code>MediaAddress</code> 直连，跨子网/NAT 主调用 <code>AdvertisedAddress</code> 经路由器转发。应用于 183/180 和 200 OK 转发给主叫的两处 SDP 锚定调用点。废弃 <code>SkipRtpAnchoring</code>（所有通话均走 RTP 锚定）。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--cyan)">⑪</span> RTP 首包缓冲</h4>
+      <p>NaudioRtpBridge 中新增 <code>ConcurrentQueue&lt;byte[]&gt;</code> 缓冲机制：地址学习完成前收到的 RTP 包入队列，学习完成后 <code>FlushPendingPackets()</code> 批量转发。队列最大容量 50 包，防止内存泄漏。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--orange)">⑬</span> BYE 跟挂修复 (LocalEP)</h4>
+      <p><code>SipSoftSwitch</code> 的 <code>_localEP</code> 优先使用 <code>MediaAddress</code> 配置值 (<code>192.168.40.102</code>)，不再用 <code>GetLocalIPv4()</code> 自动探测（多网卡/VPN 适配器会选错）。修复后同子网客户端的 BYE/ACK 正确发到服务器直连地址。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--red)">⑮</span> BYE Route/Request-URI 修复</h4>
+      <p>本地通话 BYE 不再添加 Route 头（AsterTele 是 UAC，路由集来自 200 OK Record-Route，本地设备 200 OK 不含 Record-Route）；本地通话 BYE Request-URI 改回 <code>CalleeInvite.URI</code>（注册 Contact 可达），不用 200 OK Contact（NAT 内网地址不可达）。仅 Trunk 通话保留 Route 头和 ContactURI 逻辑。</p>
+    </div>
+    <div class="summary-card">
+      <h4><span style="color:var(--red)">⑭</span> Via/REGISTER/外呼 INVITE 地址统一修复</h4>
+      <p><code>CreateB2BUAInvite</code> 中 <code>Vias.Via.Clear()</code> 去重；REGISTER Contact/Via 改用 <code>outboundIp</code>；外呼 INVITE From host 用 <code>clientUriHost</code>，Contact/Via 用 <code>trunkOutIp</code>。消除所有 <code>GetLocalIPv4()</code> 在运营商侧的使用。</p>
+    </div>
+      <p>路由器防火墙默认只放行 SIP(5060)，RTP 端口(10000-60000)被 DROP。添加 <code>Allow-RTP-LAN1-LAN2</code> 规则允许 UDP 10000-60000 从 LAN1 转发到 AsterTele。配置后 8001→8002 双向音频正常。</p>
     </div>
   </div>
 </div>
@@ -1219,6 +1539,42 @@ DAG1000                        中国电信 IMS
         <p>中国电信 IMS 中，短号/服务号（110、119、120、10000、10086 等，≤6位）不加国际前缀 +86；常规号码（手机号 11 位、固话 7-12 位，≥7位）才加 +86。号码格式化逻辑必须区分两者。</p>
       </div>
     </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>路由器防火墙不只管 SIP，RTP 端口也要显式放行。</strong></p>
+        <p>OpenWrt 默认防火墙配置只放行了 SIP (5060) 端口。RTP 媒体流使用动态端口范围 (10000-60000)，如果不显式添加放行规则，跨子网的 RTP 包会被路由器静默 DROP。这个问题没有错误日志，只能通过 UDP 监听实测验证。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>NAT 环境下直连 RTP 是不可行的——SDP 地址和实际源地址永远对不上。</strong></p>
+        <p>DAG1000 经路由器 SNAT 后，SDP 声明的 IP (192.168.0.149) 对 AsterTele 不可路由；反过来 AsterTele 发 RTP 到 DAG1000 的内网 IP 也不可达。即便尝试绕过 B2BUA 直接连接，NAT 映射地址反射也会导致回声。唯一可行方案：所有通话走 RTP 锚定 + NAT 感知 SDP 地址。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>RTP SDP 地址必须按客户端网络位置动态选择——一刀切必出问题。</strong></p>
+        <p>同子网客户端用 MediaAddress 直连服务器，跨子网/NAT 客户端用 AdvertisedAddress 经路由器转发。如果给跨子网客户端用 MediaAddress，RTP 包被路由器防火墙阻止；如果给同子网客户端用 AdvertisedAddress，增加不必要的路由跳数。必须按 <code>IsSameSubnet()</code> 动态判断。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>RTP 地址学习的首包丢包可以用缓冲队列优雅解决。</strong></p>
+        <p>地址学习需要收到第一个 RTP 包才能确定远端地址，在此之前的包无处可发。用 <code>ConcurrentQueue</code> 缓冲这些包，地址学习完成后批量刷新，既不丢包也不阻塞。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>监听 0.0.0.0 时 LocalEP.Address 就是 0.0.0.0——不能用于子网判断。</strong></p>
+        <p><code>UdpClient</code> 绑定 <code>0.0.0.0</code> 时，<code>LocalEP.Address</code> 恒为 <code>0.0.0.0</code>，导致 <code>IsSameSubnet</code> 永远返回 false，所有客户端被当作跨子网处理。必须用显式配置的 <code>MediaAddress</code> 初始化 <code>_localEP</code>。</p>
+      </div>
+    </div>
+    <div class="timeline-item discovery">
+      <div class="timeline-body">
+        <p><strong>GetLocalIPv4() 在多网卡环境下不可靠——VPN/虚拟适配器会干扰。</strong></p>
+        <p>Windows 电脑通常有多个网络适配器（Wi-Fi、以太网、VPN、Hyper-V 虚拟交换机等），<code>GetLocalIPv4()</code> 可能返回非预期的 IP 地址。SIP 服务器地址必须显式配置，不能依赖自动探测。所有运营商侧地址（REGISTER Contact/Via、外呼 INVITE From/Contact）都用 <code>outboundIp</code> / <code>clientUriHost</code> / <code>trunkOutIp</code>，消除对 <code>GetLocalIPv4()</code> 的依赖。</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1259,9 +1615,9 @@ DAG1000                        中国电信 IMS
 
 <!-- Footer -->
 <div class="footer">
-  AsterTele SIP SoftSwitch v2.0 — Bug 修复历程报告<br>
+  AsterTele SIP SoftSwitch v4.1 — Bug 修复历程报告<br>
   生成于 2026-08-01 · TeleAgent 自动生成<br>
-  <span style="color:var(--text2); font-size:0.85em;">备份: AsterTele-BugFix-Journey-backup.html (v1.1, 2026-07-27)</span>
+  <span style="color:var(--text2); font-size:0.85em;">v1.1 (2026-07-27) → v2.0 (2026-08-01 重构+RTP) → v3.0 (2026-08-01 NAT穿透) → v4.0 (2026-08-01 BYE跟挂) → v4.1 (2026-08-01 BYE Route/Request-URI) | 备份: AsterTele-BugFix-Journey-backup.html</span>
 </div>
 
 </div>

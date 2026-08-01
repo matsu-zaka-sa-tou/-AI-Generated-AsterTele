@@ -240,16 +240,11 @@ internal class ByeHandler
         }
         else
         {
-            // 本地被叫: 优先使用 200 OK 中的 Contact URI (比注册 Contact 更权威, 可能因 NAT 不同)
-            if (session.CalleeContactURI != null)
-            {
-                byeRequestUri = session.CalleeContactURI.CopyOf();
-                _logger.LogDebug("BYE Request-URI 使用被叫 200 OK Contact: {URI}", byeRequestUri);
-            }
-            else
-            {
-                byeRequestUri = session.CalleeInvite.URI.CopyOf();
-            }
+            // 本地被叫: 使用 INVITE 的 Request-URI (即注册时的 Contact URI)
+            // 不使用 200 OK Contact: NAT 后设备 200 OK Contact 可能是内网地址不可达
+            // INVITE 的 Request-URI 是注册时的 Contact (经 SNAT 后可达), 旧版代码确认此行为正确
+            byeRequestUri = session.CalleeInvite.URI.CopyOf();
+            _logger.LogDebug("BYE Request-URI 使用 INVITE Request-URI: {URI}", byeRequestUri);
         }
 
         var byeRequest = SIPRequest.GetRequest(SIPMethodsEnum.BYE, byeRequestUri);
@@ -259,7 +254,7 @@ internal class ByeHandler
         // To: 直接复制 INVITE 的 To URI (保证与 dialog 一致), 加上 200 OK 中获得的 To tag
         var toUri = session.CalleeInvite.Header.To.ToURI.CopyOf();
         byeRequest.Header.To = new SIPToHeader(null, toUri, session.CalleeToTag);
-        byeRequest.Header.CSeq = session.CalleeInvite.Header.CSeq + 1;
+        byeRequest.Header.CSeq = session.CalleeInviteCSeq + 1;
         byeRequest.Header.Vias.PushViaHeader(new SIPViaHeader(calleeContactEP, CallProperties.CreateNewCallId()[..16]));
         byeRequest.Header.MaxForwards = _runtime.MaxForwards;
         var contactUri = new SIPURI(SIPSchemesEnum.sip, calleeContactEP);
@@ -273,20 +268,33 @@ internal class ByeHandler
             _logger.LogInformation("BYE 携带 Reason 头: {Reason}", reason);
         }
 
-        // Route: 如果 INVITE 有 Record-Route, BYE 也需要 Route 头 (按 RFC 3261 顺序)
-        // UAS (被叫侧) 的 Route set = Record-Route 的反转
-        // PushRoute 是前插 (Insert(0)), 所以按原始顺序 push 即可得到反转结果
-        var calleeRecordRoutes = session.CalleeInvite.Header.RecordRoutes;
-        if (calleeRecordRoutes != null && calleeRecordRoutes.Length > 0)
+        // Route: 仅外呼 Trunk 通话才添加 Route 头 (运营商 SBC 需要路由)
+        // 本地通话 (内机打内机) 不添加 Route:
+        //   - AsterTele 是被叫侧 dialog 的 UAC, 按 RFC 3261 §12.1.2 路由集来自 200 OK 的 Record-Route
+        //   - 本地设备 200 OK 通常不含 Record-Route, 所以路由集应为空
+        //   - 如果把 INVITE 的 Record-Route (指向 AsterTele 自身) 拷贝进 Route,
+        //     会导致 BYE 被路由回 AsterTele 自身而非送达被叫设备
+        //   - 旧版代码不在本地通话 BYE 中添加 Route, 确认此行为正确
+        if (session.IsOutboundTrunk)
         {
-            for (int i = 0; i < calleeRecordRoutes.Length; i++)
+            var calleeRecordRoutes = session.CalleeInvite.Header.RecordRoutes;
+            if (calleeRecordRoutes != null && calleeRecordRoutes.Length > 0)
             {
-                byeRequest.Header.Routes.PushRoute(calleeRecordRoutes.GetAt(i));
+                for (int i = 0; i < calleeRecordRoutes.Length; i++)
+                {
+                    byeRequest.Header.Routes.PushRoute(calleeRecordRoutes.GetAt(i));
+                }
+                _logger.LogDebug("外呼Trunk BYE 添加 Route 头 (共 {Count} 条)", calleeRecordRoutes.Length);
             }
+        }
+        else
+        {
+            _logger.LogDebug("本地通话 BYE 不添加 Route 头");
         }
 
         await Transport.SendRequestAsync(session.CalleeRemoteEP, byeRequest);
-        _logger.LogInformation("BYE 已发送给被叫: {Callee} EP={EP}", session.CalleeNumber, session.CalleeRemoteEP);
+        _logger.LogInformation("BYE → 被叫 {Callee} EP={EP} | RURI={RURI} | CSeq={CSeq} | CallId={CallId}",
+            session.CalleeNumber, session.CalleeRemoteEP, byeRequestUri, byeRequest.Header.CSeq, byeRequest.Header.CallId);
     }
 
     // ===== 发送 BYE 给主叫 =====
@@ -297,16 +305,16 @@ internal class ByeHandler
 
         var callerContactEP = NetworkUtility.GetContactEPForClient(session.CallerRemoteEP, _ctx.LocalEP, _ctx.AdvertisedEP, _logger);
 
-        // 确定 BYE Request-URI
+        // 确定 BYE Request-URI (三路分支: 入站Trunk / 内机打内机 / 外呼Trunk)
         SIPURI byeRequestUri;
-        if (!session.IsOutboundTrunk)
+        if (session.IsInboundTrunk)
         {
-            // 入站方向: 主叫侧是运营商
+            // 入站Trunk方向: 主叫侧是运营商
             // BYE Request-URI 使用运营商 INVITE 的 Contact (已缓存在 session.CallerContactURI)
             if (session.CallerContactURI != null)
             {
                 byeRequestUri = session.CallerContactURI.CopyOf();
-                _logger.LogInformation("入站 BYE Request-URI 使用运营商 Contact: {URI}", byeRequestUri);
+                _logger.LogInformation("入站Trunk BYE Request-URI 使用运营商 Contact: {URI}", byeRequestUri);
             }
             else
             {
@@ -316,14 +324,14 @@ internal class ByeHandler
                 _logger.LogWarning("无运营商 Contact, BYE Request-URI 使用源地址: {URI}", byeRequestUri);
             }
         }
-        else
+        else if (session.IsOutboundTrunk)
         {
-            // 外呼方向: 主叫侧是本地分机
+            // 外呼Trunk方向: 主叫侧是本地分机
             // BYE Request-URI 应使用分机的 Contact URI (而非 INVITE 的 Request-URI, 那是被叫号码)
             if (session.CallerContactURI != null)
             {
                 byeRequestUri = session.CallerContactURI.CopyOf();
-                _logger.LogInformation("外呼 BYE Request-URI 使用本地分机 Contact: {URI}", byeRequestUri);
+                _logger.LogInformation("外呼Trunk BYE Request-URI 使用本地分机 Contact: {URI}", byeRequestUri);
             }
             else
             {
@@ -333,14 +341,30 @@ internal class ByeHandler
                 _logger.LogWarning("无主叫 Contact URI, BYE Request-URI 使用构造地址: {URI}", byeRequestUri);
             }
         }
+        else
+        {
+            // 内机打内机: 主叫侧是本地分机
+            // BYE Request-URI 使用主叫分机的 Contact URI
+            if (session.CallerContactURI != null)
+            {
+                byeRequestUri = session.CallerContactURI.CopyOf();
+                _logger.LogInformation("内机打内机 BYE Request-URI 使用主叫 Contact: {URI}", byeRequestUri);
+            }
+            else
+            {
+                byeRequestUri = new SIPURI(session.CallerNumber,
+                    session.CallerRemoteEP.Address.ToString(), null, SIPSchemesEnum.sip);
+                _logger.LogWarning("无主叫 Contact, BYE Request-URI 使用源地址: {URI}", byeRequestUri);
+            }
+        }
 
         var byeRequest = SIPRequest.GetRequest(SIPMethodsEnum.BYE, byeRequestUri);
         byeRequest.Header.CallId = session.CallerInvite.Header.CallId;
 
-        // 设置 From/To
-        if (!session.IsOutboundTrunk && _options.Trunks.Any(t => t.Enabled))
+        // 设置 From/To (三路分支)
+        if (session.IsInboundTrunk)
         {
-            // 入站方向: 我们是被叫侧, BYE 从我们发给运营商
+            // 入站Trunk: 我们是被叫侧, BYE 从我们发给运营商
             // From: 我们的身份 (To of original INVITE + our tag)
             // To: 运营商的身份 (From of original INVITE + their tag)
             byeRequest.Header.From = new SIPFromHeader(null,
@@ -350,14 +374,22 @@ internal class ByeHandler
         }
         else
         {
-            // 外呼/本地方向
+            // 外呼Trunk / 内机打内机: 主叫侧是本地分机
+            // From: 被叫号码 (我们发给主叫时, From 是我们作为被叫侧的身份)
+            // To: 主叫号码 (原始主叫, 带上他们的 From tag)
             var fromUri = new SIPURI(session.CalleeNumber, callerContactEP.Address.ToString(), null, SIPSchemesEnum.sip);
             byeRequest.Header.From = new SIPFromHeader(null, fromUri, session.B2buaToTag);
             var toUri = new SIPURI(session.CallerNumber, callerContactEP.Address.ToString(), null, SIPSchemesEnum.sip);
             byeRequest.Header.To = new SIPToHeader(null, toUri, session.CallerFromTag);
         }
 
-        byeRequest.Header.CSeq = session.CallerInvite.Header.CSeq + 1;
+        // CSeq: 使用 CallerInviteCSeq (包含 re-INVITE 后的最新值) + 1
+        // 注意: 不能直接用 session.CallerInvite.Header.CSeq, 因为 re-INVITE 只更新 CallerInviteCSeq
+        // 如果通话中发生了 re-INVITE (CSeq 递增), 用原始 INVITE 的 CSeq 会导致 BYE CSeq 过时
+        byeRequest.Header.CSeq = session.CallerInviteCSeq + 1;
+        _logger.LogDebug("BYE CSeq={CSeq} (基于 CallerInviteCSeq={Base}, 含 re-INVITE 更新)",
+            byeRequest.Header.CSeq, session.CallerInviteCSeq);
+
         byeRequest.Header.Vias.PushViaHeader(new SIPViaHeader(callerContactEP, CallProperties.CreateNewCallId()[..16]));
         byeRequest.Header.MaxForwards = _runtime.MaxForwards;
         var contactUri = new SIPURI(SIPSchemesEnum.sip, callerContactEP);
@@ -371,20 +403,35 @@ internal class ByeHandler
             _logger.LogInformation("BYE 携带 Reason 头: {Reason}", reason);
         }
 
-        // Route: 如果运营商 INVITE 有 Record-Route, BYE 也需要 Route 头
-        // UAS (我们收了运营商的 INVITE) 的 Route set = Record-Route 的反转
-        // PushRoute 是前插 (Insert(0)), 所以按原始顺序 push 即可得到反转结果
-        var callerRecordRoutes = session.CallerInvite.Header.RecordRoutes;
-        if (callerRecordRoutes != null && callerRecordRoutes.Length > 0)
+        // Route: 仅入站 Trunk 通话才添加 Route 头 (运营商 SBC 需要路由)
+        // 本地通话 (内机打内机) / 外呼 Trunk 的主叫侧不添加 Route:
+        //   - 入站 Trunk: 运营商 INVITE 的 Record-Route 指向运营商 SBC, BYE 需要路由回去
+        //   - 本地/外呼: 主叫侧的 INVITE Record-Route 指向 AsterTele 自身,
+        //     添加到 Route 会导致 BYE 路由回 AsterTele 而非送达主叫设备
+        if (session.IsInboundTrunk)
         {
-            for (int i = 0; i < callerRecordRoutes.Length; i++)
+            var callerRecordRoutes = session.CallerInvite.Header.RecordRoutes;
+            if (callerRecordRoutes != null && callerRecordRoutes.Length > 0)
             {
-                byeRequest.Header.Routes.PushRoute(callerRecordRoutes.GetAt(i));
+                for (int i = 0; i < callerRecordRoutes.Length; i++)
+                {
+                    byeRequest.Header.Routes.PushRoute(callerRecordRoutes.GetAt(i));
+                }
+                _logger.LogDebug("入站Trunk BYE 添加 Route 头 (共 {Count} 条)", callerRecordRoutes.Length);
             }
         }
+        else
+        {
+            _logger.LogDebug("本地/外呼通话 BYE 不添加 Route 头");
+        }
+
+        // 详细 BYE 转发日志 (便于排查 From/To/CSeq/Request-URI 等问题)
+        _logger.LogInformation("BYE → 主叫 {Caller} EP={EP} | RURI={RURI} | From={From} | To={To} | CSeq={CSeq} | CallId={CallId}",
+            session.CallerNumber, session.CallerRemoteEP,
+            byeRequestUri, byeRequest.Header.From, byeRequest.Header.To,
+            byeRequest.Header.CSeq, byeRequest.Header.CallId);
 
         await Transport.SendRequestAsync(session.CallerRemoteEP, byeRequest);
-        _logger.LogInformation("BYE 已发送给主叫: {Caller} EP={EP}", session.CallerNumber, session.CallerRemoteEP);
     }
 
     // ===== 会话清理 =====

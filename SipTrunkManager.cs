@@ -99,9 +99,11 @@ public class SipTrunkManager : ITrunkManager
             return (_options.AdvertisedAddress, _options.AdvertisedPort ?? _options.SipPort);
         }
 
-        // 3. 回退到本机 IP (使用 NetworkUtility 消除重复)
-        var localIp = NetworkUtility.GetLocalIPv4();
-        return (localIp, _options.SipPort);
+        // 3. 回退到 MediaAddress 或本机 IP (使用 NetworkUtility 消除重复)
+        var fallbackIp = !string.IsNullOrEmpty(_options.Rtp?.MediaAddress)
+            ? _options.Rtp.MediaAddress
+            : NetworkUtility.GetLocalIPv4();
+        return (fallbackIp, _options.SipPort);
     }
 
     /// <summary>
@@ -169,9 +171,9 @@ public class SipTrunkManager : ITrunkManager
             var (fromUser, fromDomain) = ResolveFromParts(trunk);
             var clientUri = ResolveClientUri(trunk, registrarUri);
 
-            // 使用 NetworkUtility 获取本机 IP (消除重复)
+            // Contact / Via 使用运营商可达地址 (outboundIp), 而非本机 IP
+            // 多网卡时 GetLocalIPv4() 可能选错适配器, 导致 Contact 域名不可达
             var (outboundIp, outboundPort) = ResolveOutboundAddress(trunk);
-            var localIP = NetworkUtility.GetLocalIPv4();
             var mainChannelPort = _mainTransport?.GetSIPChannels().FirstOrDefault()?.ListeningSIPEndPoint.Port ?? _options.SipPort;
 
             // 构建 REGISTER 请求
@@ -196,13 +198,15 @@ public class SipTrunkManager : ITrunkManager
 
             // Contact
             var contactUser = !string.IsNullOrEmpty(trunk.ContactUser) ? trunk.ContactUser : fromUser;
-            var contactHost = $"{localIP}:{mainChannelPort}";
+            // Contact: 使用运营商可达地址 (outboundIp)
+            var contactHost = $"{outboundIp}:{mainChannelPort}";
             var contactUri = new SIPURI(contactUser, contactHost, null, SIPSchemesEnum.sip);
             contactUri.Parameters.Set("ob", null);
             registerRequest.Header.Contact = [new SIPContactHeader(displayName, contactUri)];
 
-            // 修正 Via 头 (使用 NetworkUtility)
-            NetworkUtility.FixViaHeader(registerRequest, localIP, mainChannelPort, _logger);
+            // 修正 Via 头: 使用本机 IP (运营商通过 NAT 映射路由响应, 不依赖 Via sent-by)
+            var viaIp = !string.IsNullOrEmpty(_options.Rtp?.MediaAddress) ? _options.Rtp.MediaAddress : NetworkUtility.GetLocalIPv4();
+            NetworkUtility.FixViaHeader(registerRequest, viaIp, mainChannelPort, _logger);
 
             // 如果有缓存的 nonce, 携带 Authorization 头避免 401 往返
             if (!string.IsNullOrEmpty(state.Nonce))
@@ -214,7 +218,7 @@ public class SipTrunkManager : ITrunkManager
                 "From={From}, To={To}, Contact={Contact}, OutboundIP={OutboundIP}, CallId={CallId})",
                 trunk.Registrar, trunk.Name, state.RegisterAttempts, state.CSeq,
                 registerRequest.Header.From.FromURI, registerRequest.Header.To.ToURI,
-                contactUri, $"{localIP}:{mainChannelPort}", state.CallId);
+                contactUri, $"{outboundIp}:{mainChannelPort}", state.CallId);
 
             _logger.LogInformation("REGISTER 报文:\n{Packet}", registerRequest.ToString());
 
@@ -335,9 +339,8 @@ public class SipTrunkManager : ITrunkManager
         // CSeq 递增
         state.CSeq++;
 
-        // 使用 NetworkUtility 获取本机 IP (消除重复)
+        // Contact / Via 使用运营商可达地址 (outboundIp), 而非本机 IP
         var (outboundIp, outboundPort) = ResolveOutboundAddress(trunk);
-        var localIP = NetworkUtility.GetLocalIPv4();
         var mainChannelPort = _mainTransport?.GetSIPChannels().FirstOrDefault()?.ListeningSIPEndPoint.Port ?? _options.SipPort;
 
         // 构建 REGISTER 请求 (带认证)
@@ -368,13 +371,15 @@ public class SipTrunkManager : ITrunkManager
         registerRequest.Header.Expires = trunk.RegisterExpiry;
 
         // Contact
-        var contactHost = $"{localIP}:{mainChannelPort}";
+        // Contact: 使用运营商可达地址 (outboundIp)
+        var contactHost = $"{outboundIp}:{mainChannelPort}";
         var contactUri = new SIPURI(contactUser, contactHost, null, SIPSchemesEnum.sip);
         contactUri.Parameters.Set("ob", null);
         registerRequest.Header.Contact = [new SIPContactHeader(displayName, contactUri)];
 
-        // 修正 Via 头 (使用 NetworkUtility)
-        NetworkUtility.FixViaHeader(registerRequest, localIP, mainChannelPort, _logger);
+        // 修正 Via 头: 使用本机 IP (运营商通过 NAT 映射路由响应, 不依赖 Via sent-by)
+        var viaIp = !string.IsNullOrEmpty(_options.Rtp?.MediaAddress) ? _options.Rtp.MediaAddress : NetworkUtility.GetLocalIPv4();
+        NetworkUtility.FixViaHeader(registerRequest, viaIp, mainChannelPort, _logger);
 
         // === Digest 认证 (使用 DigestUtility 统一计算) ===
         var authUri = $"sip:{clientUri.HostAddress}";
@@ -397,7 +402,7 @@ public class SipTrunkManager : ITrunkManager
         _logger.LogInformation("向运营商 {Registrar} 发送带认证的 REGISTER (Trunk={Name}, CallId={CallId}, " +
             "CSeq={CSeq}, Contact={Contact}, OutboundIP={OutboundIP})",
             trunk.Registrar, trunk.Name, state.CallId, state.CSeq, contactUri,
-            $"{localIP}:{mainChannelPort}");
+            $"{outboundIp}:{mainChannelPort}");
 
         _logger.LogInformation("带认证 REGISTER 报文:\n{Packet}", registerRequest.ToString());
 

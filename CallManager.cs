@@ -71,8 +71,15 @@ public class CallSession
     /// <summary>BYE 目标: true=被叫, false=主叫</summary>
     public bool ByeTargetIsCallee { get; set; }
 
-    /// <summary>是否为外呼 Trunk 会话</summary>
+    /// <summary>是否为外呼 Trunk 会话 (本地分机 → 运营商)</summary>
     public bool IsOutboundTrunk { get; set; }
+
+    /// <summary>是否为入站 Trunk 会话 (运营商 → 本地分机)</summary>
+    /// <remarks>内机打内机时 IsOutboundTrunk=false 且 IsInboundTrunk=false</remarks>
+    public bool IsInboundTrunk { get; set; }
+
+    /// <summary>是否跳过 RTP 媒体锚定 (内机打内机场景, 直连 RTP)</summary>
+    public bool SkipRtpAnchoring { get; set; }
 
     /// <summary>外呼 Trunk 名称</summary>
     public string? TrunkName { get; set; }

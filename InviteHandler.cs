@@ -120,8 +120,11 @@ internal class InviteHandler
             }
 
             // 被叫侧收到同一 Call-ID 的 INVITE → 这是运营商发来的 re-INVITE
-            _logger.LogInformation("re-INVITE (in-dialog): CallId={CallId}, CSeq={CSeq}, 会话={SessionId}",
+            _logger.LogInformation("re-INVITE (被叫侧 in-dialog): CallId={CallId}, CSeq={CSeq}, 会话={SessionId}",
                 request.Header.CallId, request.Header.CSeq, existingSession.SessionId);
+
+            // 更新被叫侧 CSeq (与主叫侧 re-INVITE 处理保持一致)
+            existingSession.CalleeInviteCSeq = request.Header.CSeq;
 
             // 回复 100 Trying
             await SendResponse(request, SIPResponseStatusCodesEnum.Trying, "Trying", remoteEP);
@@ -261,6 +264,22 @@ internal class InviteHandler
         session.CallerFromTag = request.Header.From.FromTag;
         session.CallerInviteCSeq = request.Header.CSeq;
 
+        // 标记入站 Trunk 会话 (运营商 → 本地分机)
+        // 区分于内机打内机 (IsOutboundTrunk=false, IsInboundTrunk=false)
+        if (isFromTrunk || didMapping != null)
+        {
+            session.IsInboundTrunk = true;
+            _logger.LogInformation("入站 Trunk 会话: 主叫={Caller} 来自运营商", callerNumber);
+        }
+
+        // === RTP 媒体锚定: 所有通话均走 RTP 锚定 ===
+        // 直连 RTP 在 NAT 环境下不可行 (路由器 SNAT 导致 SDP 地址不可达, 产生回音)
+        // 必须通过 AsterTele 中转 RTP, 即使内机打内机也需要锚定
+        //
+        // NAT 主叫 (如 DAG1000 经路由器 SNAT) 的 SDP RTP 目标 IP 使用 AdvertisedAddress
+        // (路由器 IP 192.168.40.1), 路由器做端口转发到 AsterTele
+        // 同子网主叫使用 MediaAddress (192.168.40.102) 直连 AsterTele
+
         // 保存主叫侧 Contact URI (用于后续发 BYE)
         var callerContact = request.Header.Contact.FirstOrDefault();
         if (callerContact != null)
@@ -276,6 +295,12 @@ internal class InviteHandler
         try
         {
             _logger.LogInformation("向被叫 {Number} ({Contact}) 发送 INVITE", calleeNumber, calleeReg.ContactURI);
+            _logger.LogInformation("被叫侧 INVITE 路由信息: targetEP={TargetEP} | Contact={Contact} | RecordRoute={RR} | Via={Via}",
+                calleeTargetEP,
+                calleeInvite.Header.Contact.FirstOrDefault()?.ContactURI,
+                calleeInvite.Header.RecordRoutes?.GetAt(0)?.URI,
+                calleeInvite.Header.Vias.Via.FirstOrDefault());
+            _logger.LogInformation("被叫侧 INVITE 完整报文:\n{Msg}", calleeInvite.ToString());
             var calleeEP = new SIPEndPoint(SIPProtocolsEnum.udp,
                 calleeReg.SourceEndPoint.Address, calleeReg.SourceEndPoint.Port);
             await Transport.SendRequestAsync(calleeEP, calleeInvite);
@@ -331,10 +356,9 @@ internal class InviteHandler
         var (trunkOutIp, _) = _trunkManager.GetOutboundAddress(trunk);
         var trunkTransportEP = _trunkManager.GetTrunkTransportEP();
 
-        // Via sent-by: 使用本机内网 IP + trunk 传输层端口
-        var localIP = NetworkUtility.GetLocalIPv4();
+        // Via sent-by: 使用运营商可达地址 (trunkOutIp) + trunk 传输层端口
         var trunkViaEP = new SIPEndPoint(SIPProtocolsEnum.udp,
-            System.Net.IPAddress.Parse(localIP), trunkTransportEP.Port);
+            System.Net.IPAddress.Parse(trunkOutIp), trunkTransportEP.Port);
 
         // === 中国电信 IMS 外呼 INVITE 格式要求 ===
         // Request-URI: 使用 tel: 格式 (如 tel:+8610000), 运营商 IMS 期望此格式
@@ -369,7 +393,7 @@ internal class InviteHandler
         var displayName = $"{trunkNumber}@{clientUriHost}";
 
         trunkInvite.Header.From = new SIPFromHeader(displayName,
-            new SIPURI(trunkNumber, localIP, null, SIPSchemesEnum.sip),
+            new SIPURI(trunkNumber, clientUriHost, null, SIPSchemesEnum.sip),
             CallProperties.CreateNewCallId()[..8]);
         trunkInvite.Header.To = new SIPToHeader(null,
             new SIPURI(outboundNumber, trunkRegistrarUri.Host, null, SIPSchemesEnum.sip), null);
@@ -377,8 +401,8 @@ internal class InviteHandler
         trunkInvite.Header.CSeq = 1;
         trunkInvite.Header.MaxForwards = _runtime.MaxForwards;
 
-        // Contact: MicroSIP 抓包使用本地 IP + 端口 (192.168.40.140:54625;ob)
-        var contactUri = new SIPURI(trunkNumber, $"{localIP}:{trunkTransportEP.Port}", null, SIPSchemesEnum.sip);
+        // Contact: 使用运营商可达地址 (trunkOutIp) + trunk 传输层端口
+        var contactUri = new SIPURI(trunkNumber, $"{trunkOutIp}:{trunkTransportEP.Port}", null, SIPSchemesEnum.sip);
         contactUri.Parameters.Set("ob", null);
         trunkInvite.Header.Contact = [new SIPContactHeader(displayName, contactUri)];
 
@@ -461,10 +485,9 @@ internal class InviteHandler
         var (trunkOutIp, _) = _trunkManager.GetOutboundAddress(trunk);
         var trunkTransportEP = _trunkManager.GetTrunkTransportEP();
 
-        // Via sent-by: 使用内网 IP + trunk 传输层端口
-        var localIP = NetworkUtility.GetLocalIPv4();
+        // Via sent-by: 使用运营商可达地址 (trunkOutIp) + trunk 传输层端口
         var trunkViaEP = new SIPEndPoint(SIPProtocolsEnum.udp,
-            System.Net.IPAddress.Parse(localIP), trunkTransportEP.Port);
+            System.Net.IPAddress.Parse(trunkOutIp), trunkTransportEP.Port);
 
         // 外呼号码加 +86 前缀 (与 HandleOutboundInvite 一致)
         // 短号/服务号 (如 110, 10000, 10086) 长度 <= 6, 不加 +86
@@ -487,7 +510,7 @@ internal class InviteHandler
         var displayName = $"{trunkNumber}@{clientUriHost}";
 
         reinvite.Header.From = new SIPFromHeader(displayName,
-            new SIPURI(trunkNumber, localIP, null, SIPSchemesEnum.sip),
+            new SIPURI(trunkNumber, clientUriHost, null, SIPSchemesEnum.sip),
             CallProperties.CreateNewCallId()[..8]);
         reinvite.Header.To = new SIPToHeader(null,
             new SIPURI(outboundNumber, trunkRegistrarUri.Host, null, SIPSchemesEnum.sip), null);
@@ -495,8 +518,8 @@ internal class InviteHandler
         reinvite.Header.CSeq = (session.CalleeInvite?.Header.CSeq ?? 0) + 1; // CSeq 递增
         reinvite.Header.MaxForwards = _runtime.MaxForwards;
 
-        // Contact: 使用本地 IP + 端口 (与 REGISTER 一致)
-        var reinviteContactUri = new SIPURI(trunkNumber, $"{localIP}:{trunkTransportEP.Port}", null, SIPSchemesEnum.sip);
+        // Contact: 使用运营商可达地址 (trunkOutIp) + trunk 传输层端口 (与 REGISTER 一致)
+        var reinviteContactUri = new SIPURI(trunkNumber, $"{trunkOutIp}:{trunkTransportEP.Port}", null, SIPSchemesEnum.sip);
         reinviteContactUri.Parameters.Set("ob", null);
         reinvite.Header.Contact = [new SIPContactHeader(displayName, reinviteContactUri)];
 
@@ -656,7 +679,8 @@ internal class InviteHandler
         // CSeq: 从 1 开始
         invite.Header.CSeq = 1;
 
-        // Via: 公布地址
+        // Via: 清除 GetRequest 自动添加的默认 Via (0.0.0.0), 替换为目标端点
+        invite.Header.Vias.Via.Clear();
         invite.Header.Vias.PushViaHeader(new SIPViaHeader(targetEP, CallProperties.CreateNewCallId()[..16]));
 
         // Contact: 公布地址
@@ -679,9 +703,8 @@ internal class InviteHandler
         invite.Header.Allow = "INVITE, ACK, BYE, CANCEL, OPTIONS, NOTIFY, REFER";
 
         // SDP: 入站 INVITE 的 RTP 媒体锚定
-        // 将运营商 SDP 重写为 AsterTele 的地址/端口, 让本地分机的 RTP 发到 AsterTele
-        // 使用 Rtp.MediaAddress (192.168.40.102): 本地分机可直接路由到达
-        // 对运营商侧用 OutboundAddress (172.48.242.167), 由路由器 DNAT 转发到本机
+        // 所有通话均走 RTP 锚定 (直连 RTP 在 NAT 环境下不可行)
+        // 被叫侧 SDP 地址: 使用 MediaAddress (同子网可直达 AsterTele)
         if (!string.IsNullOrEmpty(originalInvite.Body))
         {
             var extensionSideIp = _options.Rtp.MediaAddress ?? NetworkUtility.GetLocalIPv4();
@@ -749,9 +772,9 @@ internal class InviteHandler
                     if (!string.IsNullOrEmpty(response.Body))
                     {
                         // SDP: RTP 媒体锚定 — 重写被叫 SDP 为主叫侧 AsterTele 地址/端口
-                        // 使用 Rtp.MediaAddress (192.168.40.102): 主叫可直接路由到达
-                        // SIP Contact/Record-Route 仍用 AdvertisedAddress (路由器IP, 经端口转发)
-                        var callerSideIp = _options.Rtp.MediaAddress ?? NetworkUtility.GetLocalIPv4();
+                        // NAT 主叫 (跨子网): 使用 AdvertisedAddress (路由器 IP), 路由器做端口转发
+                        // 同子网主叫: 使用 MediaAddress (AsterTele IP), 直连可达
+                        var callerSideIp = GetCallerSideRtpIp(session);
                         var sdpBody = _rtpBridge.RewriteSdpToCaller(session, response.Body, callerSideIp);
                         if (sdpBody == null)
                             sdpBody = response.Body; // 纯透传
@@ -819,8 +842,9 @@ internal class InviteHandler
                     if (!string.IsNullOrEmpty(response.Body))
                     {
                         // SDP: RTP 媒体锚定 — 重写被叫 SDP 为主叫侧 AsterTele 地址/端口
-                        // 使用 Rtp.MediaAddress (192.168.40.102): 主叫可直接路由到达
-                        var callerSideIp = _options.Rtp.MediaAddress ?? NetworkUtility.GetLocalIPv4();
+                        // NAT 主叫 (跨子网): 使用 AdvertisedAddress (路由器 IP), 路由器做端口转发
+                        // 同子网主叫: 使用 MediaAddress (AsterTele IP), 直连可达
+                        var callerSideIp = GetCallerSideRtpIp(session);
                         var sdpBody = _rtpBridge.RewriteSdpToCaller(session, response.Body, callerSideIp);
                         if (sdpBody == null)
                             sdpBody = response.Body; // 纯透传
@@ -912,6 +936,34 @@ internal class InviteHandler
     {
         var contactUri = new SIPURI(SIPSchemesEnum.sip, advEP);
         response.Header.Contact = [new SIPContactHeader(null, contactUri)];
+    }
+
+    /// <summary>
+    /// 判断主叫侧的 RTP SDP IP 地址
+    /// 
+    /// NAT 检测逻辑: 比较主叫远端地址与 AsterTele 是否在同一子网
+    /// - 同子网主叫 (如 Zoiper 192.168.40.100): 使用 MediaAddress (192.168.40.102) 直连
+    /// - 跨子网/NAT 主叫 (如 DAG1000 经路由器 SNAT 192.168.40.1): 使用 AdvertisedAddress (192.168.40.1)
+    ///   让主叫发 RTP 到路由器 IP, 路由器做端口转发到 AsterTele
+    /// </summary>
+    private string GetCallerSideRtpIp(CallSession session)
+    {
+        var mediaIp = _options.Rtp.MediaAddress ?? NetworkUtility.GetLocalIPv4();
+        var callerIp = session.CallerRemoteEP.Address;
+
+        // 检查主叫是否与 AsterTele 在同一子网 (简单的 /24 子网匹配)
+        if (NetworkUtility.IsSameSubnet(callerIp, IPAddress.Parse(mediaIp)))
+        {
+            _logger.LogDebug("RTP 主叫侧 SDP IP: {Ip} (同子网直连, MediaAddress)", mediaIp);
+            return mediaIp;
+        }
+
+        // NAT/跨子网主叫: 使用 AdvertisedAddress (路由器 IP)
+        // 主叫发 RTP 到路由器, 路由器做端口转发到 AsterTele
+        var advIp = _ctx.AdvertisedEP?.Address.ToString() ?? mediaIp;
+        _logger.LogInformation("RTP 主叫侧 SDP IP: {Ip} (NAT/跨子网, AdvertisedAddress, 主叫={CallerIp})", 
+            advIp, callerIp);
+        return advIp;
     }
 
     // ===== ACK 处理 =====
